@@ -6,7 +6,7 @@ interface CargaJwt {
     correoElectronico: string;
     rol: string;
 }
-declare const EstrategiaJwt_base: new (...args: [opt: import("passport-jwt").StrategyOptionsWithoutRequest] | [opt: import("passport-jwt").StrategyOptionsWithRequest]) => Strategy & {
+declare const EstrategiaJwt_base: new (...args: [opt: import("passport-jwt").StrategyOptionsWithRequest] | [opt: import("passport-jwt").StrategyOptionsWithoutRequest]) => Strategy & {
     validate(...args: any[]): unknown;
 };
 export declare class EstrategiaJwt extends EstrategiaJwt_base {
