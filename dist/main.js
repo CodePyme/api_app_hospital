@@ -5,6 +5,18 @@ const common_1 = require("@nestjs/common");
 const app_module_1 = require("./app.module");
 async function iniciarAplicacion() {
     const aplicacion = await core_1.NestFactory.create(app_module_1.AppModule);
+    aplicacion.use((req, res, next) => {
+        const origin = req.headers.origin || '*';
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Tenant-Domain');
+        res.header('Access-Control-Max-Age', '86400');
+        if (req.method === 'OPTIONS') {
+            res.status(204).end();
+            return;
+        }
+        next();
+    });
     aplicacion.setGlobalPrefix('api/v1');
     aplicacion.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
@@ -19,8 +31,6 @@ async function iniciarAplicacion() {
         methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Tenant-Domain'],
         credentials: false,
-        preflightContinue: false,
-        optionsSuccessStatus: 204,
     });
     const puerto = process.env.PUERTO || 3000;
     await aplicacion.listen(puerto);

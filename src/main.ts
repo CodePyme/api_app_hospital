@@ -1,9 +1,29 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { Request, Response, NextFunction } from 'express';
 
 async function iniciarAplicacion() {
   const aplicacion = await NestFactory.create(AppModule);
+
+  // ─── CORS MIDDLEWARE (nivel Express, antes del pipeline de Nest) ────────────
+  // Esto se ejecuta ANTES que Nginx pueda interferir con los headers de CORS.
+  // Es la solución más confiable cuando hay un reverse proxy (Nginx, Apache, etc.)
+  aplicacion.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin || '*';
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Tenant-Domain');
+    res.header('Access-Control-Max-Age', '86400'); // 24 horas de cache del preflight
+
+    // Responder inmediatamente las peticiones OPTIONS (preflight)
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+    next();
+  });
+  // ───────────────────────────────────────────────────────────────────────────
 
   // Prefijo global para todas las rutas de la API
   aplicacion.setGlobalPrefix('api/v1');
@@ -20,15 +40,12 @@ async function iniciarAplicacion() {
     }),
   );
 
-  // Habilitar CORS - permite todos los orígenes
-  // Seguro porque la autenticación usa JWT en header Authorization, no cookies
+  // enableCors de Nest como capa secundaria de seguridad
   aplicacion.enableCors({
     origin: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Tenant-Domain'],
     credentials: false,
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
   });
 
   const puerto = process.env.PUERTO || 3000;
@@ -38,3 +55,4 @@ async function iniciarAplicacion() {
 }
 
 iniciarAplicacion();
+
