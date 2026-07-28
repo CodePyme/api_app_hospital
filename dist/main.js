@@ -14,10 +14,29 @@ async function iniciarAplicacion() {
             enableImplicitConversion: true,
         },
     }));
+    const origenesPermitidos = [
+        /^https?:\/\/localhost(:\d+)?$/,
+        /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+        /^https?:\/\/.*\.runasalud\.com$/,
+        /^https?:\/\/.*\.codepyme\.io$/,
+    ];
     aplicacion.enableCors({
-        origin: '*',
-        methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+        origin: (origin, callback) => {
+            if (!origin)
+                return callback(null, true);
+            const permitido = origenesPermitidos.some((patron) => patron.test(origin));
+            if (permitido) {
+                callback(null, true);
+            }
+            else {
+                callback(new Error(`CORS: Origen no permitido → ${origin}`));
+            }
+        },
+        methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Tenant-Domain'],
+        credentials: true,
         preflightContinue: false,
+        optionsSuccessStatus: 204,
     });
     const puerto = process.env.PUERTO || 3000;
     await aplicacion.listen(puerto);
