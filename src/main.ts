@@ -20,29 +20,13 @@ async function iniciarAplicacion() {
     }),
   );
 
-  // Habilitar CORS - permite el frontend de cualquier subdominio o localhost
-  const origenesPermitidos = [
-    /^https?:\/\/localhost(:\d+)?$/,          // localhost (cualquier puerto)
-    /^https?:\/\/127\.0\.0\.1(:\d+)?$/,       // 127.0.0.1
-    /^https?:\/\/.*\.runasalud\.com$/,         // Subdominio de runasalud.com
-    /^https?:\/\/.*\.codepyme\.io$/,           // Subdominio de codepyme.io
-  ];
-
+  // Habilitar CORS - permite todos los orígenes
+  // Seguro porque la autenticación usa JWT en header Authorization, no cookies
   aplicacion.enableCors({
-    origin: (origin, callback) => {
-      // Permite peticiones sin origin (Postman, mobile apps, server-to-server)
-      if (!origin) return callback(null, true);
-      // Verifica contra la lista de orígenes permitidos
-      const permitido = origenesPermitidos.some((patron) => patron.test(origin));
-      if (permitido) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS: Origen no permitido → ${origin}`));
-      }
-    },
+    origin: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Tenant-Domain'],
-    credentials: true,
+    credentials: false,
     preflightContinue: false,
     optionsSuccessStatus: 204,
   });
