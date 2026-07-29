@@ -11,6 +11,17 @@ function obtenerOrigenesPermitidos() {
     return origenesEnv.split(',').map((o) => o.trim()).filter(Boolean);
 }
 async function iniciarAplicacion() {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔍 DIAGNÓSTICO DE CONFIGURACIÓN');
+    console.log(`   DB_HOST     : ${process.env.DB_HOST ?? '(no definido)'}`);
+    console.log(`   DB_PORT     : ${process.env.DB_PORT ?? '(no definido)'}`);
+    console.log(`   DB_DATABASE : ${process.env.DB_DATABASE ?? '(no definido)'}`);
+    console.log(`   DB_USERNAME : ${process.env.DB_USERNAME ?? '(no definido)'}`);
+    console.log(`   DB_PASSWORD : ${process.env.DB_PASSWORD ? '***' : '(no definido)'}`);
+    console.log(`   ENTORNO     : ${process.env.ENTORNO ?? '(no definido)'}`);
+    console.log(`   CORS_ORIGINS: ${process.env.CORS_ORIGINS ?? '(no definido - permite todo)'}`);
+    console.log(`   CWD         : ${process.cwd()}`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     const aplicacion = await core_1.NestFactory.create(app_module_1.AppModule);
     const origenesPermitidos = obtenerOrigenesPermitidos();
     aplicacion.use((req, res, next) => {
