@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { Request, Response, NextFunction } from 'express';
+import helmet from 'helmet';
 
 const logger = new Logger('Bootstrap');
 
@@ -34,7 +35,9 @@ async function iniciarAplicacion() {
   // ─────────────────────────────────────────────────────────────────────────
 
   const aplicacion = await NestFactory.create(AppModule);
-
+  
+  // Habilitar Helmet (Seguridad HTTP)
+  aplicacion.use(helmet());
 
   const origenesPermitidos = obtenerOrigenesPermitidos();
 

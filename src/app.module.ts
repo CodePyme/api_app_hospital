@@ -1,6 +1,8 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { configuracionBaseDeDatos } from './config/base-de-datos.config';
 import { AutenticacionModule } from './autenticacion/autenticacion.module';
 import { PacientesModule } from './pacientes/pacientes.module';
@@ -11,6 +13,12 @@ import { TenantMiddleware } from './tenants/tenant.middleware';
 
 @Module({
   imports: [
+    // Límite de peticiones global (Anti-DDoS y Fuerza Bruta)
+    ThrottlerModule.forRoot([{
+      ttl: 60000, // 1 minuto
+      limit: 100, // máximo 100 peticiones por IP por minuto
+    }]),
+
     // Configuración de variables de entorno (disponible globalmente)
     ConfigModule.forRoot({
       isGlobal: true,
@@ -46,6 +54,13 @@ import { TenantMiddleware } from './tenants/tenant.middleware';
     CitasModule,
     DatabaseModule,
     TenantModule,
+  ],
+  controllers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule implements NestModule {

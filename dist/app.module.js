@@ -10,6 +10,8 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const typeorm_1 = require("@nestjs/typeorm");
+const throttler_1 = require("@nestjs/throttler");
+const core_1 = require("@nestjs/core");
 const base_de_datos_config_1 = require("./config/base-de-datos.config");
 const autenticacion_module_1 = require("./autenticacion/autenticacion.module");
 const pacientes_module_1 = require("./pacientes/pacientes.module");
@@ -28,6 +30,10 @@ exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            throttler_1.ThrottlerModule.forRoot([{
+                    ttl: 60000,
+                    limit: 100,
+                }]),
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
                 load: [base_de_datos_config_1.configuracionBaseDeDatos],
@@ -57,6 +63,13 @@ exports.AppModule = AppModule = __decorate([
             citas_module_1.CitasModule,
             database_module_1.DatabaseModule,
             tenant_module_1.TenantModule,
+        ],
+        controllers: [],
+        providers: [
+            {
+                provide: core_1.APP_GUARD,
+                useClass: throttler_1.ThrottlerGuard,
+            },
         ],
     })
 ], AppModule);
