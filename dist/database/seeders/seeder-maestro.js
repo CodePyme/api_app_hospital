@@ -44,8 +44,8 @@ let SeederMaestro = SeederMaestro_1 = class SeederMaestro {
                     slug: process.env.TENANT_DEV_SLUG ?? 'localhost',
                     dbHost: process.env.TENANT_DEV_DB_HOST ?? process.env.DB_HOST ?? '127.0.0.1',
                     dbPort: parseInt(process.env.TENANT_DEV_DB_PORT ?? process.env.DB_PORT ?? '5432', 10),
-                    dbUsername: process.env.TENANT_DEV_DB_USERNAME ?? process.env.DB_USERNAME ?? 'admin',
-                    dbPassword: process.env.TENANT_DEV_DB_PASSWORD ?? process.env.DB_PASSWORD ?? 'admin123',
+                    dbUsername: process.env.TENANT_DEV_DB_USERNAME ?? process.env.DB_USERNAME ?? '',
+                    dbPassword: process.env.TENANT_DEV_DB_PASSWORD ?? process.env.DB_PASSWORD ?? '',
                     dbDatabase: process.env.TENANT_DEV_DB_DATABASE ?? process.env.DB_DATABASE ?? 'portal_paciente',
                     activo: true,
                 });

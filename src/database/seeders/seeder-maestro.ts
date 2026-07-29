@@ -47,13 +47,15 @@ export class SeederMaestro implements OnApplicationBootstrap {
       if (!tenant) {
         this.logger.log('🌱 Creando tenant de desarrollo en BD maestra...');
         tenant = this.repositorioTenant.create({
-          nombre:      process.env.TENANT_DEV_NOMBRE    ?? 'Clínica Local (Desarrollo)',
+          nombre:      process.env.TENANT_DEV_NOMBRE      ?? 'Clínica Local (Desarrollo)',
           dominio,
-          slug:        process.env.TENANT_DEV_SLUG      ?? 'localhost',
-          dbHost:      process.env.TENANT_DEV_DB_HOST   ?? process.env.DB_HOST     ?? '127.0.0.1',
+          slug:        process.env.TENANT_DEV_SLUG        ?? 'localhost',
+          // Usa los mismos valores que TypeORM para la BD maestra
+          // (garantiza consistencia: si TypeORM conectó, estos también funcionan)
+          dbHost:      process.env.TENANT_DEV_DB_HOST     ?? process.env.DB_HOST     ?? '127.0.0.1',
           dbPort:      parseInt(process.env.TENANT_DEV_DB_PORT ?? process.env.DB_PORT ?? '5432', 10),
-          dbUsername:  process.env.TENANT_DEV_DB_USERNAME ?? process.env.DB_USERNAME ?? 'admin',
-          dbPassword:  process.env.TENANT_DEV_DB_PASSWORD ?? process.env.DB_PASSWORD ?? 'admin123',
+          dbUsername:  process.env.TENANT_DEV_DB_USERNAME ?? process.env.DB_USERNAME ?? '',
+          dbPassword:  process.env.TENANT_DEV_DB_PASSWORD ?? process.env.DB_PASSWORD ?? '',
           dbDatabase:  process.env.TENANT_DEV_DB_DATABASE ?? process.env.DB_DATABASE ?? 'portal_paciente',
           activo:      true,
         });
