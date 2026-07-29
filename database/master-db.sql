@@ -56,5 +56,6 @@ CREATE INDEX IF NOT EXISTS idx_tenants_activo  ON tenants(activo);
 -- VALUES ('<nombre>', '<dominio>', '<slug>', '<db_host>', 5432, '<db_user>', '<db_pass>', '<db_name>')
 -- ON CONFLICT (dominio) DO NOTHING;
 
+
 -- Verificar tenants registrados
 SELECT id, nombre, dominio, db_database, activo FROM tenants;
