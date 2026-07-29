@@ -31,7 +31,11 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
                 load: [base_de_datos_config_1.configuracionBaseDeDatos],
-                envFilePath: '.env',
+                envFilePath: [
+                    '.env',
+                    '../../.env',
+                    '/home/forge/apiportal.runasalud.com/.env'
+                ],
             }),
             typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],

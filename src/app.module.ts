@@ -15,7 +15,12 @@ import { TenantMiddleware } from './tenants/tenant.middleware';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuracionBaseDeDatos],
-      envFilePath: '.env',
+      // Busca el .env en la carpeta local, o en las rutas de Laravel Forge
+      envFilePath: [
+        '.env',
+        '../../.env', 
+        '/home/forge/apiportal.runasalud.com/.env'
+      ],
     }),
 
     // Conexión a base de datos PostgreSQL
