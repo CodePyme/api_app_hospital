@@ -5,12 +5,11 @@
 -- NOTA: Este script es solo de referencia/documentación.
 -- La aplicación crea y sincroniza las tablas automáticamente
 -- via TypeORM (synchronize: true) + SeederMaestro al arrancar.
+-- ⚠️  NUNCA commitar credenciales reales en este archivo.
 -- =============================================
 
 -- Crear la base de datos maestra (solo si se hace setup manual)
 -- CREATE DATABASE portal_paciente;
-
--- Conectarse a portal_paciente y ejecutar:
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -41,51 +40,21 @@ CREATE INDEX IF NOT EXISTS idx_tenants_activo  ON tenants(activo);
 -- =============================================
 -- TENANT DE DESARROLLO (localhost)
 -- =============================================
--- NOTA: SeederMaestro lo inserta automáticamente al arrancar.
---       Este INSERT es solo para referencia o setup manual.
+-- SeederMaestro lo inserta automáticamente al arrancar la app.
+-- Este INSERT es solo para setup manual de emergencia.
 -- =============================================
--- INSERT INTO tenants (
---   nombre,
---   dominio,
---   slug,
---   db_host,
---   db_port,
---   db_username,
---   db_password,
---   db_database
--- ) VALUES (
---   'Clínica Local (Desarrollo)',
---   'localhost',
---   'localhost',
---   '127.0.0.1',
---   5432,
---   'admin',
---   'admin123',
---   'portal_paciente'
--- ) ON CONFLICT (dominio) DO NOTHING;
+-- INSERT INTO tenants (nombre, dominio, slug, db_host, db_port, db_username, db_password, db_database)
+-- VALUES ('Clínica Local (Desarrollo)', 'localhost', 'localhost', '127.0.0.1', 5432, 'admin', 'admin123', 'portal_paciente')
+-- ON CONFLICT (dominio) DO NOTHING;
 
 -- =============================================
--- EJEMPLO: Agregar un tenant de producción
+-- AGREGAR TENANT DE PRODUCCIÓN (ejecutar directamente en el servidor)
+-- ⚠️  NUNCA commitar credenciales reales en este archivo.
+--     Ejecutar el INSERT directamente via psql en el servidor o desde Forge.
 -- =============================================
-INSERT INTO tenants (
-  nombre,
-  dominio,
-  slug,
-  db_host,
-  db_port,
-  db_username,
-  db_password,
-  db_database
-) VALUES (
-  'Portal paciente Runasalud',
-  'portal.runasalud.com',
-  'runasalud',
-  '64.227.12.37',
-  5432,
-  'forge',
-  'CNbVNAEpljeeufpnFZEA',
-  'portal_paciente'
-);
+-- INSERT INTO tenants (nombre, dominio, slug, db_host, db_port, db_username, db_password, db_database)
+-- VALUES ('<nombre>', '<dominio>', '<slug>', '<db_host>', 5432, '<db_user>', '<db_pass>', '<db_name>')
+-- ON CONFLICT (dominio) DO NOTHING;
 
 -- Verificar tenants registrados
 SELECT id, nombre, dominio, db_database, activo FROM tenants;
