@@ -44,29 +44,6 @@ CREATE INDEX IF NOT EXISTS idx_tenants_activo  ON tenants(activo);
 -- NOTA: SeederMaestro lo inserta automáticamente al arrancar.
 --       Este INSERT es solo para referencia o setup manual.
 -- =============================================
-INSERT INTO tenants (
-  nombre,
-  dominio,
-  slug,
-  db_host,
-  db_port,
-  db_username,
-  db_password,
-  db_database
-) VALUES (
-  'Clínica Local (Desarrollo)',
-  'localhost',
-  'localhost',
-  '127.0.0.1',
-  5432,
-  'admin',
-  'admin123',
-  'portal_paciente'
-) ON CONFLICT (dominio) DO NOTHING;
-
--- =============================================
--- EJEMPLO: Agregar un tenant de producción
--- =============================================
 -- INSERT INTO tenants (
 --   nombre,
 --   dominio,
@@ -77,15 +54,38 @@ INSERT INTO tenants (
 --   db_password,
 --   db_database
 -- ) VALUES (
---   'Clínica ABC',
---   'clinica-abc.com',
---   'clinica-abc',
+--   'Clínica Local (Desarrollo)',
+--   'localhost',
+--   'localhost',
 --   '127.0.0.1',
 --   5432,
 --   'admin',
---   'password_seguro',
---   'portal_paciente_clinica_abc'
--- );
+--   'admin123',
+--   'portal_paciente'
+-- ) ON CONFLICT (dominio) DO NOTHING;
+
+-- =============================================
+-- EJEMPLO: Agregar un tenant de producción
+-- =============================================
+INSERT INTO tenants (
+  nombre,
+  dominio,
+  slug,
+  db_host,
+  db_port,
+  db_username,
+  db_password,
+  db_database
+) VALUES (
+  'Portal paciente Runasalud',
+  'portal.runasalud.com',
+  'runasalud',
+  '64.227.12.37',
+  5432,
+  'forge',
+  'CNbVNAEpljeeufpnFZEA',
+  'portal_paciente'
+);
 
 -- Verificar tenants registrados
 SELECT id, nombre, dominio, db_database, activo FROM tenants;
