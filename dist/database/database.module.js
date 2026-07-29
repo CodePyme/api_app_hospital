@@ -8,15 +8,24 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DatabaseModule = void 0;
 const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
+const seeder_maestro_1 = require("./seeders/seeder-maestro");
 const seeder_usuario_admin_1 = require("./seeders/seeder-usuario-admin");
+const tenant_entity_1 = require("../tenants/tenant.entity");
 const tenant_module_1 = require("../tenants/tenant.module");
 let DatabaseModule = class DatabaseModule {
 };
 exports.DatabaseModule = DatabaseModule;
 exports.DatabaseModule = DatabaseModule = __decorate([
     (0, common_1.Module)({
-        imports: [tenant_module_1.TenantModule],
-        providers: [seeder_usuario_admin_1.SeederUsuarioAdmin],
+        imports: [
+            tenant_module_1.TenantModule,
+            typeorm_1.TypeOrmModule.forFeature([tenant_entity_1.Tenant]),
+        ],
+        providers: [
+            seeder_maestro_1.SeederMaestro,
+            seeder_usuario_admin_1.SeederUsuarioAdmin,
+        ],
     })
 ], DatabaseModule);
 //# sourceMappingURL=database.module.js.map

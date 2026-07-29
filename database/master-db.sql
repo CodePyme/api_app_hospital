@@ -1,37 +1,48 @@
 -- =============================================
 -- SCRIPT DE BASE DE DATOS MAESTRA MULTI-TENANT
--- Base de datos: portal_paciente_master
+-- Base de datos: portal_paciente
+-- =============================================
+-- NOTA: Este script es solo de referencia/documentación.
+-- La aplicación crea y sincroniza las tablas automáticamente
+-- via TypeORM (synchronize: true) + SeederMaestro al arrancar.
 -- =============================================
 
--- Crear la base de datos maestra (ejecutar conectado a postgres)
--- CREATE DATABASE portal_paciente_master;
+-- Crear la base de datos maestra (solo si se hace setup manual)
+-- CREATE DATABASE portal_paciente;
 
--- Conectarse a portal_paciente_master y ejecutar:
+-- Conectarse a portal_paciente y ejecutar:
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Tabla de tenants
 CREATE TABLE IF NOT EXISTS tenants (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  nombre VARCHAR(100) NOT NULL,
-  dominio VARCHAR(255) NOT NULL UNIQUE,
-  slug VARCHAR(100) NOT NULL UNIQUE,
-  db_host VARCHAR(255) NOT NULL DEFAULT '127.0.0.1',
-  db_port INT NOT NULL DEFAULT 5432,
-  db_username VARCHAR(100) NOT NULL,
-  db_password VARCHAR(255) NOT NULL,
-  db_database VARCHAR(100) NOT NULL,
-  activo BOOLEAN NOT NULL DEFAULT true,
-  creado_en TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  actualizado_en TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+  id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  nombre           VARCHAR(100)  NOT NULL,
+  dominio          VARCHAR(255)  NOT NULL UNIQUE,
+  slug             VARCHAR(100)  NOT NULL UNIQUE,
+  db_host          VARCHAR(255)  NOT NULL DEFAULT '127.0.0.1',
+  db_port          INT           NOT NULL DEFAULT 5432,
+  db_username      VARCHAR(100)  NOT NULL,
+  db_password      VARCHAR(255)  NOT NULL,
+  db_database      VARCHAR(100)  NOT NULL,
+  activo           BOOLEAN       NOT NULL DEFAULT true,
+  nombre_entidad   VARCHAR(150)  NOT NULL DEFAULT 'Salud Plus',
+  logo_url         VARCHAR(500)  NULL,
+  color_primario   VARCHAR(20)   NOT NULL DEFAULT '#075c39',
+  color_secundario VARCHAR(20)   NOT NULL DEFAULT '#9cc516',
+  creado_en        TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  actualizado_en   TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
--- Índice para búsqueda rápida por dominio
+-- Índices para búsqueda rápida
 CREATE INDEX IF NOT EXISTS idx_tenants_dominio ON tenants(dominio);
-CREATE INDEX IF NOT EXISTS idx_tenants_activo ON tenants(activo);
+CREATE INDEX IF NOT EXISTS idx_tenants_activo  ON tenants(activo);
 
 -- =============================================
 -- TENANT DE DESARROLLO (localhost)
+-- =============================================
+-- NOTA: SeederMaestro lo inserta automáticamente al arrancar.
+--       Este INSERT es solo para referencia o setup manual.
 -- =============================================
 INSERT INTO tenants (
   nombre,
