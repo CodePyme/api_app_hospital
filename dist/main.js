@@ -3,11 +3,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@nestjs/core");
 const common_1 = require("@nestjs/common");
 const app_module_1 = require("./app.module");
+const logger = new common_1.Logger('Bootstrap');
+function obtenerOrigenesPermitidos() {
+    const origenesEnv = process.env.CORS_ORIGINS;
+    if (!origenesEnv)
+        return true;
+    return origenesEnv.split(',').map((o) => o.trim()).filter(Boolean);
+}
 async function iniciarAplicacion() {
     const aplicacion = await core_1.NestFactory.create(app_module_1.AppModule);
+    const origenesPermitidos = obtenerOrigenesPermitidos();
     aplicacion.use((req, res, next) => {
-        const origin = req.headers.origin || '*';
-        res.header('Access-Control-Allow-Origin', origin);
+        const origin = req.headers.origin;
+        const origenAutorizado = origenesPermitidos === true ||
+            (Array.isArray(origenesPermitidos) && origin && origenesPermitidos.includes(origin));
+        if (origenAutorizado && origin) {
+            res.header('Access-Control-Allow-Origin', origin);
+            res.header('Vary', 'Origin');
+        }
+        else if (origenesPermitidos === true) {
+            res.header('Access-Control-Allow-Origin', '*');
+        }
         res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
         res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Tenant-Domain');
         res.header('Access-Control-Max-Age', '86400');
@@ -27,14 +43,17 @@ async function iniciarAplicacion() {
         },
     }));
     aplicacion.enableCors({
-        origin: true,
+        origin: origenesPermitidos,
         methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Tenant-Domain'],
         credentials: false,
     });
     const puerto = process.env.PUERTO || 3000;
     await aplicacion.listen(puerto);
-    console.log(`🚀 API Portal Paciente ejecutándose en: http://localhost:${puerto}/api/v1`);
+    const entorno = process.env.ENTORNO || 'development';
+    logger.log(`🚀 API ejecutándose en: http://localhost:${puerto}/api/v1`);
+    logger.log(`🌍 Entorno: ${entorno}`);
+    logger.log(`🔐 CORS: ${Array.isArray(origenesPermitidos) ? origenesPermitidos.join(', ') : 'todos los orígenes (*)'}`);
 }
 iniciarAplicacion();
 //# sourceMappingURL=main.js.map
