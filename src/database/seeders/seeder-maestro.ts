@@ -27,6 +27,11 @@ export class SeederMaestro implements OnApplicationBootstrap {
 
   async onApplicationBootstrap(): Promise<void> {
     await this.garantizarTenantDesarrollo();
+    
+    // Si estamos en producción (o para forzar setup), creamos el tenant productivo
+    if (process.env.ENTORNO === 'production' || process.env.CORS_ORIGINS?.includes('portal.runasalud.com')) {
+      await this.garantizarTenantProduccion();
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -71,8 +76,46 @@ export class SeederMaestro implements OnApplicationBootstrap {
       this.logger.log('✅ Tablas del tenant de desarrollo sincronizadas');
 
     } catch (error) {
-      this.logger.error('❌ Error en SeederMaestro', error);
-      // No lanzamos el error para no bloquear otros seeders/módulos
+      this.logger.error('❌ Error en SeederMaestro (Desarrollo)', error);
+    }
+  }
+
+  /**
+   * Crea (o verifica) el tenant de producción 'portal.runasalud.com'.
+   * Útil cuando no hay acceso SSH para insertar directamente en BD.
+   */
+  private async garantizarTenantProduccion(): Promise<void> {
+    try {
+      const dominio = 'portal.runasalud.com';
+
+      let tenant = await this.repositorioTenant.findOne({ where: { dominio } });
+
+      if (!tenant) {
+        this.logger.log('🌱 Creando tenant de producción en BD maestra...');
+        tenant = this.repositorioTenant.create({
+          nombre:      'Portal Paciente Runasalud',
+          dominio,
+          slug:        'runasalud',
+          // Mismas credenciales que TypeORM maestro
+          dbHost:      process.env.DB_HOST     ?? '127.0.0.1',
+          dbPort:      parseInt(process.env.DB_PORT ?? '5432', 10),
+          dbUsername:  process.env.DB_USERNAME ?? '',
+          dbPassword:  process.env.DB_PASSWORD ?? '',
+          dbDatabase:  process.env.DB_DATABASE ?? 'portal_paciente',
+          activo:      true,
+        });
+
+        await this.repositorioTenant.save(tenant);
+        this.logger.log(`✅ Tenant de producción creado: ${tenant.nombre}`);
+      } else {
+        this.logger.log(`✔ Tenant de producción ya existe: ${tenant.nombre}`);
+      }
+
+      await this.connectionManager.obtenerConexion(tenant);
+      this.logger.log('✅ Tablas del tenant de producción sincronizadas');
+
+    } catch (error) {
+      this.logger.error('❌ Error en SeederMaestro (Producción)', error);
     }
   }
 }

@@ -9,4 +9,5 @@ export declare class SeederMaestro implements OnApplicationBootstrap {
     constructor(repositorioTenant: Repository<Tenant>, connectionManager: TenantConnectionManager);
     onApplicationBootstrap(): Promise<void>;
     private garantizarTenantDesarrollo;
+    private garantizarTenantProduccion;
 }
