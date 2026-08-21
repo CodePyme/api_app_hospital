@@ -11,15 +11,20 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var PacientesService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PacientesService = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
 const paciente_entity_1 = require("./entities/paciente.entity");
-let PacientesService = class PacientesService {
+const integracion_hospital_service_1 = require("../autenticacion/services/integracion-hospital.service");
+let PacientesService = PacientesService_1 = class PacientesService {
     request;
-    constructor(request) {
+    integracionHospitalService;
+    logger = new common_1.Logger(PacientesService_1.name);
+    constructor(request, integracionHospitalService) {
         this.request = request;
+        this.integracionHospitalService = integracionHospitalService;
     }
     get repositorioPaciente() {
         return this.request.tenantConexion.getRepository(paciente_entity_1.Paciente);
@@ -99,6 +104,61 @@ let PacientesService = class PacientesService {
             mensaje: 'Paciente eliminado exitosamente',
         };
     }
+    async obtenerMiPerfil(usuario) {
+        let tipoDocumento = usuario?.tipoDocumento;
+        let numeroDocumento = usuario?.numeroDocumento;
+        if (!numeroDocumento) {
+            const paciente = await this.repositorioPaciente.findOne({
+                where: [
+                    { correoElectronico: usuario?.correoElectronico },
+                    { id: usuario?.pacienteId },
+                ],
+            });
+            if (paciente) {
+                tipoDocumento = paciente.tipoDocumento;
+                numeroDocumento = paciente.numeroDocumento;
+            }
+        }
+        if (!numeroDocumento) {
+            throw new common_1.NotFoundException('No se encontró el documento del paciente asociado a esta sesión.');
+        }
+        try {
+            const pacienteSap = await this.integracionHospitalService.consultarDatosDemograficos({
+                tipoDocumento: tipoDocumento || 'CC',
+                numeroDocumento,
+                fechaNacimiento: '',
+            });
+            if (pacienteSap) {
+                return {
+                    exito: true,
+                    mensaje: 'Datos demográficos obtenidos desde SAP PO',
+                    datos: pacienteSap,
+                };
+            }
+        }
+        catch (e) {
+            this.logger.warn(`No fue posible refrescar desde SAP PO: ${e.message}`);
+        }
+        const pacienteDb = await this.repositorioPaciente.findOne({
+            where: [{ numeroDocumento }, { correoElectronico: usuario?.correoElectronico }],
+        });
+        return {
+            exito: true,
+            mensaje: 'Datos del paciente recuperados',
+            datos: pacienteDb || usuario,
+        };
+    }
+    async consultarPorEpisodio(episodio) {
+        const pacienteSap = await this.integracionHospitalService.consultarPorEpisodio({ episodio });
+        return {
+            exito: true,
+            mensaje: `Datos del paciente recuperados para el episodio ${episodio}`,
+            datos: {
+                ...pacienteSap,
+                episodio,
+            },
+        };
+    }
     async buscarPacientes(termino) {
         const resultados = await this.repositorioPaciente
             .createQueryBuilder('paciente')
@@ -116,9 +176,9 @@ let PacientesService = class PacientesService {
     }
 };
 exports.PacientesService = PacientesService;
-exports.PacientesService = PacientesService = __decorate([
+exports.PacientesService = PacientesService = PacientesService_1 = __decorate([
     (0, common_1.Injectable)({ scope: common_1.Scope.REQUEST }),
     __param(0, (0, common_1.Inject)(core_1.REQUEST)),
-    __metadata("design:paramtypes", [Object])
+    __metadata("design:paramtypes", [Object, integracion_hospital_service_1.IntegracionHospitalService])
 ], PacientesService);
 //# sourceMappingURL=pacientes.service.js.map

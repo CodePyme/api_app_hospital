@@ -17,6 +17,8 @@ const common_1 = require("@nestjs/common");
 const autenticacion_service_1 = require("./autenticacion.service");
 const iniciar_sesion_dto_1 = require("./dto/iniciar-sesion.dto");
 const registrar_usuario_dto_1 = require("./dto/registrar-usuario.dto");
+const solicitar_otp_dto_1 = require("./dto/solicitar-otp.dto");
+const verificar_otp_dto_1 = require("./dto/verificar-otp.dto");
 const jwt_autenticacion_guard_1 = require("../common/guards/jwt-autenticacion.guard");
 const usuario_actual_decorator_1 = require("../common/decorators/usuario-actual.decorator");
 const usuario_entity_1 = require("./entities/usuario.entity");
@@ -24,6 +26,12 @@ let AutenticacionController = class AutenticacionController {
     autenticacionService;
     constructor(autenticacionService) {
         this.autenticacionService = autenticacionService;
+    }
+    async solicitarOtp(solicitarOtpDto) {
+        return this.autenticacionService.solicitarOtp(solicitarOtpDto);
+    }
+    async verificarOtp(verificarOtpDto) {
+        return this.autenticacionService.verificarOtp(verificarOtpDto);
     }
     async registrarUsuario(registrarUsuarioDto) {
         return this.autenticacionService.registrarUsuario(registrarUsuarioDto);
@@ -36,6 +44,20 @@ let AutenticacionController = class AutenticacionController {
     }
 };
 exports.AutenticacionController = AutenticacionController;
+__decorate([
+    (0, common_1.Post)('solicitar-otp'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [solicitar_otp_dto_1.SolicitarOtpDto]),
+    __metadata("design:returntype", Promise)
+], AutenticacionController.prototype, "solicitarOtp", null);
+__decorate([
+    (0, common_1.Post)('verificar-otp'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [verificar_otp_dto_1.VerificarOtpDto]),
+    __metadata("design:returntype", Promise)
+], AutenticacionController.prototype, "verificarOtp", null);
 __decorate([
     (0, common_1.Post)('registrar'),
     __param(0, (0, common_1.Body)()),

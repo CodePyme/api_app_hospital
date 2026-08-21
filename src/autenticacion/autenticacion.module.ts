@@ -6,7 +6,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AutenticacionController } from './autenticacion.controller';
 import { AutenticacionService } from './autenticacion.service';
 import { EstrategiaJwt } from './strategies/jwt.strategy';
-import { Usuario } from './entities/usuario.entity';
+import { CorreoService } from './services/correo.service';
+import { IntegracionHospitalService } from './services/integracion-hospital.service';
 
 @Module({
   imports: [
@@ -23,7 +24,12 @@ import { Usuario } from './entities/usuario.entity';
     }),
   ],
   controllers: [AutenticacionController],
-  providers: [AutenticacionService, EstrategiaJwt],
-  exports: [AutenticacionService, JwtModule, PassportModule],
+  providers: [
+    AutenticacionService,
+    EstrategiaJwt,
+    CorreoService,
+    IntegracionHospitalService,
+  ],
+  exports: [AutenticacionService, CorreoService, IntegracionHospitalService, JwtModule, PassportModule],
 })
 export class AutenticacionModule {}

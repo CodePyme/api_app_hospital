@@ -34,6 +34,12 @@ let PacientesController = class PacientesController {
     async buscarPacientes(termino) {
         return this.pacientesService.buscarPacientes(termino);
     }
+    async obtenerMiPerfil(req) {
+        return this.pacientesService.obtenerMiPerfil(req.user);
+    }
+    async consultarPorEpisodio(episodio) {
+        return this.pacientesService.consultarPorEpisodio(episodio);
+    }
     async obtenerPacientePorId(id) {
         return this.pacientesService.obtenerPacientePorId(id);
     }
@@ -67,6 +73,20 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], PacientesController.prototype, "buscarPacientes", null);
+__decorate([
+    (0, common_1.Get)('mi-perfil'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], PacientesController.prototype, "obtenerMiPerfil", null);
+__decorate([
+    (0, common_1.Get)('episodio/:episodio'),
+    __param(0, (0, common_1.Param)('episodio')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PacientesController.prototype, "consultarPorEpisodio", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),

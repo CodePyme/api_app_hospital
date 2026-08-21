@@ -42,7 +42,7 @@ export class Paciente {
   @Column({ name: 'genero', type: 'enum', enum: GeneroPaciente, default: GeneroPaciente.OTRO })
   genero: GeneroPaciente;
 
-  @Column({ name: 'correo_electronico', type: 'varchar', length: 150, unique: true, nullable: true })
+  @Column({ name: 'correo_electronico', type: 'varchar', length: 150, nullable: true })
   correoElectronico: string;
 
   @Column({ name: 'telefono', type: 'varchar', length: 20, nullable: true })

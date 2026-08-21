@@ -14,6 +14,8 @@ const config_1 = require("@nestjs/config");
 const autenticacion_controller_1 = require("./autenticacion.controller");
 const autenticacion_service_1 = require("./autenticacion.service");
 const jwt_strategy_1 = require("./strategies/jwt.strategy");
+const correo_service_1 = require("./services/correo.service");
+const integracion_hospital_service_1 = require("./services/integracion-hospital.service");
 let AutenticacionModule = class AutenticacionModule {
 };
 exports.AutenticacionModule = AutenticacionModule;
@@ -33,8 +35,13 @@ exports.AutenticacionModule = AutenticacionModule = __decorate([
             }),
         ],
         controllers: [autenticacion_controller_1.AutenticacionController],
-        providers: [autenticacion_service_1.AutenticacionService, jwt_strategy_1.EstrategiaJwt],
-        exports: [autenticacion_service_1.AutenticacionService, jwt_1.JwtModule, passport_1.PassportModule],
+        providers: [
+            autenticacion_service_1.AutenticacionService,
+            jwt_strategy_1.EstrategiaJwt,
+            correo_service_1.CorreoService,
+            integracion_hospital_service_1.IntegracionHospitalService,
+        ],
+        exports: [autenticacion_service_1.AutenticacionService, correo_service_1.CorreoService, integracion_hospital_service_1.IntegracionHospitalService, jwt_1.JwtModule, passport_1.PassportModule],
     })
 ], AutenticacionModule);
 //# sourceMappingURL=autenticacion.module.js.map

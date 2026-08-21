@@ -4,6 +4,7 @@ import {
   ConflictException,
   Inject,
   Scope,
+  Logger,
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
@@ -11,11 +12,15 @@ import { Paciente } from './entities/paciente.entity';
 import { CrearPacienteDto } from './dto/crear-paciente.dto';
 import { ActualizarPacienteDto } from './dto/actualizar-paciente.dto';
 import { RespuestaApi, RespuestaPaginada } from '../common/interfaces/respuesta-api.interface';
+import { IntegracionHospitalService } from '../autenticacion/services/integracion-hospital.service';
 
 @Injectable({ scope: Scope.REQUEST })
 export class PacientesService {
+  private readonly logger = new Logger(PacientesService.name);
+
   constructor(
     @Inject(REQUEST) private readonly request: Request,
+    private readonly integracionHospitalService: IntegracionHospitalService,
   ) {}
 
   private get repositorioPaciente() {
@@ -123,6 +128,74 @@ export class PacientesService {
     return {
       exito: true,
       mensaje: 'Paciente eliminado exitosamente',
+    };
+  }
+
+  /**
+   * Obtiene el perfil demográfico completo del paciente autenticado directamente desde SAP PO
+   */
+  async obtenerMiPerfil(usuario: any): Promise<RespuestaApi<any>> {
+    let tipoDocumento = usuario?.tipoDocumento;
+    let numeroDocumento = usuario?.numeroDocumento;
+
+    if (!numeroDocumento) {
+      const paciente = await this.repositorioPaciente.findOne({
+        where: [
+          { correoElectronico: usuario?.correoElectronico },
+          { id: usuario?.pacienteId },
+        ],
+      });
+      if (paciente) {
+        tipoDocumento = paciente.tipoDocumento;
+        numeroDocumento = paciente.numeroDocumento;
+      }
+    }
+
+    if (!numeroDocumento) {
+      throw new NotFoundException('No se encontró el documento del paciente asociado a esta sesión.');
+    }
+
+    try {
+      const pacienteSap = await this.integracionHospitalService.consultarDatosDemograficos({
+        tipoDocumento: tipoDocumento || 'CC',
+        numeroDocumento,
+        fechaNacimiento: '',
+      });
+
+      if (pacienteSap) {
+        return {
+          exito: true,
+          mensaje: 'Datos demográficos obtenidos desde SAP PO',
+          datos: pacienteSap,
+        };
+      }
+    } catch (e: any) {
+      this.logger.warn(`No fue posible refrescar desde SAP PO: ${e.message}`);
+    }
+
+    const pacienteDb = await this.repositorioPaciente.findOne({
+      where: [{ numeroDocumento }, { correoElectronico: usuario?.correoElectronico }],
+    });
+
+    return {
+      exito: true,
+      mensaje: 'Datos del paciente recuperados',
+      datos: pacienteDb || usuario,
+    };
+  }
+
+  /**
+   * Consulta los datos demográficos y clínicos asociados a un episodio en SAP PO
+   */
+  async consultarPorEpisodio(episodio: string): Promise<RespuestaApi<any>> {
+    const pacienteSap = await this.integracionHospitalService.consultarPorEpisodio({ episodio });
+    return {
+      exito: true,
+      mensaje: `Datos del paciente recuperados para el episodio ${episodio}`,
+      datos: {
+        ...pacienteSap,
+        episodio,
+      },
     };
   }
 

@@ -11,9 +11,11 @@ exports.TenantConnectionManager = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("typeorm");
 const usuario_entity_1 = require("../autenticacion/entities/usuario.entity");
+const codigo_otp_entity_1 = require("../autenticacion/entities/codigo-otp.entity");
 const paciente_entity_1 = require("../pacientes/entities/paciente.entity");
 const cita_entity_1 = require("../citas/entities/cita.entity");
-const ENTIDADES_TENANT = [usuario_entity_1.Usuario, paciente_entity_1.Paciente, cita_entity_1.Cita];
+const auditoria_cancelacion_cita_entity_1 = require("../citas/entities/auditoria-cancelacion-cita.entity");
+const ENTIDADES_TENANT = [usuario_entity_1.Usuario, codigo_otp_entity_1.CodigoOtp, paciente_entity_1.Paciente, cita_entity_1.Cita, auditoria_cancelacion_cita_entity_1.AuditoriaCancelacionCita];
 let TenantConnectionManager = TenantConnectionManager_1 = class TenantConnectionManager {
     logger = new common_1.Logger(TenantConnectionManager_1.name);
     conexiones = new Map();

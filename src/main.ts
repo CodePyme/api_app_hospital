@@ -4,7 +4,7 @@ import { AppModule } from './app.module';
 import { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 
-const logger = new Logger('Bootstrap');
+const logger = new Logger('Bootstrap'); // Reload .env configs
 
 /**
  * Parsea la variable CORS_ORIGINS del .env.

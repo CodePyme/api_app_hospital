@@ -2,14 +2,16 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { Tenant } from './tenant.entity';
 import { Usuario } from '../autenticacion/entities/usuario.entity';
+import { CodigoOtp } from '../autenticacion/entities/codigo-otp.entity';
 import { Paciente } from '../pacientes/entities/paciente.entity';
 import { Cita } from '../citas/entities/cita.entity';
+import { AuditoriaCancelacionCita } from '../citas/entities/auditoria-cancelacion-cita.entity';
 
 /**
  * Entidades que pertenecen a cada base de datos de tenant.
  * Agregar aquí cualquier nueva entidad que se cree en el proyecto.
  */
-const ENTIDADES_TENANT = [Usuario, Paciente, Cita];
+const ENTIDADES_TENANT = [Usuario, CodigoOtp, Paciente, Cita, AuditoriaCancelacionCita];
 
 @Injectable()
 export class TenantConnectionManager implements OnModuleDestroy {

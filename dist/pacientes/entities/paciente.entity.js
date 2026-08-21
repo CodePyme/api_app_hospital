@@ -71,7 +71,7 @@ __decorate([
     __metadata("design:type", String)
 ], Paciente.prototype, "genero", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'correo_electronico', type: 'varchar', length: 150, unique: true, nullable: true }),
+    (0, typeorm_1.Column)({ name: 'correo_electronico', type: 'varchar', length: 150, nullable: true }),
     __metadata("design:type", String)
 ], Paciente.prototype, "correoElectronico", void 0);
 __decorate([

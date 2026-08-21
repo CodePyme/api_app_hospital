@@ -10,6 +10,7 @@ exports.CitasModule = void 0;
 const common_1 = require("@nestjs/common");
 const citas_controller_1 = require("./citas.controller");
 const citas_service_1 = require("./citas.service");
+const integracion_citas_hospital_service_1 = require("./services/integracion-citas-hospital.service");
 const pacientes_module_1 = require("../pacientes/pacientes.module");
 let CitasModule = class CitasModule {
 };
@@ -18,8 +19,8 @@ exports.CitasModule = CitasModule = __decorate([
     (0, common_1.Module)({
         imports: [pacientes_module_1.PacientesModule],
         controllers: [citas_controller_1.CitasController],
-        providers: [citas_service_1.CitasService],
-        exports: [citas_service_1.CitasService],
+        providers: [citas_service_1.CitasService, integracion_citas_hospital_service_1.IntegracionCitasHospitalService],
+        exports: [citas_service_1.CitasService, integracion_citas_hospital_service_1.IntegracionCitasHospitalService],
     })
 ], CitasModule);
 //# sourceMappingURL=citas.module.js.map

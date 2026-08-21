@@ -34,7 +34,12 @@ let EstrategiaJwt = class EstrategiaJwt extends (0, passport_1.PassportStrategy)
         if (!usuario) {
             throw new common_1.UnauthorizedException('Token inválido o usuario no encontrado');
         }
-        return usuario;
+        return {
+            ...usuario,
+            pacienteId: cargaJwt.pacienteId,
+            tipoDocumento: cargaJwt.tipoDocumento,
+            numeroDocumento: cargaJwt.numeroDocumento,
+        };
     }
 };
 exports.EstrategiaJwt = EstrategiaJwt;

@@ -7,8 +7,10 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { PacientesService } from './pacientes.service';
 import { CrearPacienteDto } from './dto/crear-paciente.dto';
 import { ActualizarPacienteDto } from './dto/actualizar-paciente.dto';
@@ -37,6 +39,16 @@ export class PacientesController {
   @Get('buscar')
   async buscarPacientes(@Query('termino') termino: string) {
     return this.pacientesService.buscarPacientes(termino);
+  }
+
+  @Get('mi-perfil')
+  async obtenerMiPerfil(@Req() req: Request) {
+    return this.pacientesService.obtenerMiPerfil(req.user);
+  }
+
+  @Get('episodio/:episodio')
+  async consultarPorEpisodio(@Param('episodio') episodio: string) {
+    return this.pacientesService.consultarPorEpisodio(episodio);
   }
 
   @Get(':id')

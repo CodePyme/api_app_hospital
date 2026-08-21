@@ -17,19 +17,28 @@ const common_1 = require("@nestjs/common");
 const citas_service_1 = require("./citas.service");
 const crear_cita_dto_1 = require("./dto/crear-cita.dto");
 const actualizar_cita_dto_1 = require("./dto/actualizar-cita.dto");
+const cancelar_cita_dto_1 = require("./dto/cancelar-cita.dto");
 const jwt_autenticacion_guard_1 = require("../common/guards/jwt-autenticacion.guard");
 let CitasController = class CitasController {
     citasService;
     constructor(citasService) {
         this.citasService = citasService;
     }
+    async obtenerMisCitas(req) {
+        return this.citasService.obtenerMisCitas(req.user);
+    }
+    async cancelarCitaPaciente(req, cancelarCitaDto) {
+        const ip = req.ip || req.socket.remoteAddress;
+        const userAgent = req.headers['user-agent'];
+        return this.citasService.cancelarCitaPaciente(cancelarCitaDto, req.user, ip, userAgent);
+    }
     async crearCita(crearCitaDto) {
         return this.citasService.crearCita(crearCitaDto);
     }
-    async obtenerTodasLasCitas(pagina, limite) {
+    async obtenerTodasLasCitas(req, pagina, limite) {
         const numeroPagina = pagina ? parseInt(pagina, 10) : 1;
         const numeroLimite = limite ? parseInt(limite, 10) : 10;
-        return this.citasService.obtenerTodasLasCitas(numeroPagina, numeroLimite);
+        return this.citasService.obtenerTodasLasCitas(numeroPagina, numeroLimite, req.user);
     }
     async obtenerCitasPorPaciente(pacienteId) {
         return this.citasService.obtenerCitasPorPaciente(pacienteId);
@@ -49,6 +58,21 @@ let CitasController = class CitasController {
 };
 exports.CitasController = CitasController;
 __decorate([
+    (0, common_1.Get)('mis-citas'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], CitasController.prototype, "obtenerMisCitas", null);
+__decorate([
+    (0, common_1.Post)('cancelar'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, cancelar_cita_dto_1.CancelarCitaDto]),
+    __metadata("design:returntype", Promise)
+], CitasController.prototype, "cancelarCitaPaciente", null);
+__decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -57,10 +81,11 @@ __decorate([
 ], CitasController.prototype, "crearCita", null);
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, common_1.Query)('pagina')),
-    __param(1, (0, common_1.Query)('limite')),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Query)('pagina')),
+    __param(2, (0, common_1.Query)('limite')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", Promise)
 ], CitasController.prototype, "obtenerTodasLasCitas", null);
 __decorate([

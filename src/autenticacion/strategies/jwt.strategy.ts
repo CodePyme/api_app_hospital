@@ -8,6 +8,11 @@ interface CargaJwt {
   sub: string;
   correoElectronico: string;
   rol: string;
+  nombres?: string;
+  apellidos?: string;
+  pacienteId?: string;
+  tipoDocumento?: string;
+  numeroDocumento?: string;
 }
 
 @Injectable()
@@ -21,7 +26,7 @@ export class EstrategiaJwt extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(req: Request, cargaJwt: CargaJwt): Promise<Usuario> {
+  async validate(req: Request, cargaJwt: CargaJwt): Promise<any> {
     if (!req.tenantConexion) {
       throw new UnauthorizedException('Tenant no configurado para la petición');
     }
@@ -35,6 +40,11 @@ export class EstrategiaJwt extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Token inválido o usuario no encontrado');
     }
 
-    return usuario;
+    return {
+      ...usuario,
+      pacienteId: cargaJwt.pacienteId,
+      tipoDocumento: cargaJwt.tipoDocumento,
+      numeroDocumento: cargaJwt.numeroDocumento,
+    };
   }
 }
