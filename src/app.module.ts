@@ -26,8 +26,8 @@ import { TenantMiddleware } from './tenants/tenant.middleware';
       // Busca el .env en la carpeta local, o en las rutas de Laravel Forge
       envFilePath: [
         '.env',
-        '../../.env', 
-        '/home/forge/apiportal.runasalud.com/.env'
+        '../../.env',
+        '/home/forge/apiportalpacientesf.codepyme.io/.env'
       ],
     }),
 

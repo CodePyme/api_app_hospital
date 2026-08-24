@@ -9,7 +9,7 @@ const logger = new Logger('Bootstrap'); // Reload .env configs
 /**
  * Parsea la variable CORS_ORIGINS del .env.
  * Acepta una lista separada por comas:
- *   CORS_ORIGINS=https://portal.runasalud.com,https://admin.runasalud.com
+ *   CORS_ORIGINS=https://portalpacientesf.codepyme.io,https://admin.runasalud.com
  * Si no está definida, permite cualquier origen (útil en desarrollo).
  */
 function obtenerOrigenesPermitidos(): string[] | boolean {
@@ -35,7 +35,7 @@ async function iniciarAplicacion() {
   // ─────────────────────────────────────────────────────────────────────────
 
   const aplicacion = await NestFactory.create(AppModule);
-  
+
   // Habilitar Helmet (Seguridad HTTP)
   aplicacion.use(helmet());
 
