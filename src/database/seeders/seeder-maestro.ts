@@ -27,9 +27,9 @@ export class SeederMaestro implements OnApplicationBootstrap {
 
   async onApplicationBootstrap(): Promise<void> {
     await this.garantizarTenantDesarrollo();
-    
+
     // Si estamos en producción (o para forzar setup), creamos el tenant productivo
-    if (process.env.ENTORNO === 'production' || process.env.CORS_ORIGINS?.includes('portal.runasalud.com')) {
+    if (process.env.ENTORNO === 'production' || process.env.CORS_ORIGINS?.includes('portalpacientesf.codepyme.io')) {
       await this.garantizarTenantProduccion();
     }
   }
@@ -81,28 +81,28 @@ export class SeederMaestro implements OnApplicationBootstrap {
   }
 
   /**
-   * Crea (o verifica) el tenant de producción 'portal.runasalud.com'.
+   * Crea (o verifica) el tenant de producción 'portalpacientesf.codepyme.io'.
    * Útil cuando no hay acceso SSH para insertar directamente en BD.
    */
   private async garantizarTenantProduccion(): Promise<void> {
     try {
-      const dominio = 'portal.runasalud.com';
+      const dominio = 'portalpacientesf.codepyme.io';
 
       let tenant = await this.repositorioTenant.findOne({ where: { dominio } });
 
       if (!tenant) {
         this.logger.log('🌱 Creando tenant de producción en BD maestra...');
         tenant = this.repositorioTenant.create({
-          nombre:      'Portal Paciente Runasalud',
+          nombre: 'Portal Paciente Runasalud',
           dominio,
-          slug:        'runasalud',
+          slug: 'runasalud',
           // Mismas credenciales que TypeORM maestro
-          dbHost:      process.env.DB_HOST     ?? '127.0.0.1',
-          dbPort:      parseInt(process.env.DB_PORT ?? '5432', 10),
-          dbUsername:  process.env.DB_USERNAME ?? '',
-          dbPassword:  process.env.DB_PASSWORD ?? '',
-          dbDatabase:  process.env.DB_DATABASE ?? 'portal_paciente',
-          activo:      true,
+          dbHost: process.env.DB_HOST ?? '127.0.0.1',
+          dbPort: parseInt(process.env.DB_PORT ?? '5432', 10),
+          dbUsername: process.env.DB_USERNAME ?? '',
+          dbPassword: process.env.DB_PASSWORD ?? '',
+          dbDatabase: process.env.DB_DATABASE ?? 'portal_paciente',
+          activo: true,
         });
 
         await this.repositorioTenant.save(tenant);

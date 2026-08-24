@@ -31,16 +31,16 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             throttler_1.ThrottlerModule.forRoot([{
-                    ttl: 60000,
-                    limit: 100,
-                }]),
+                ttl: 60000,
+                limit: 100,
+            }]),
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
                 load: [base_de_datos_config_1.configuracionBaseDeDatos],
                 envFilePath: [
                     '.env',
                     '../../.env',
-                    '/home/forge/apiportal.runasalud.com/.env'
+                    '/home/forge/apiportalpacientesf.codepyme.io/.env'
                 ],
             }),
             typeorm_1.TypeOrmModule.forRootAsync({
