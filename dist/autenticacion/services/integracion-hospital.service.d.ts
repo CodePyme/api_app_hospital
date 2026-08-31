@@ -24,7 +24,7 @@ export declare class IntegracionHospitalService {
     private readonly logger;
     constructor(configService: ConfigService);
     private normalizarTipoDocumento;
-    private normalizarFecha;
+    normalizarFecha(fecha: string): string;
     private getEndpointDemograficos;
     consultarDatosDemograficos(parametros: {
         tipoDocumento: string;

@@ -10,6 +10,7 @@ import { CitasModule } from './citas/citas.module';
 import { DatabaseModule } from './database/database.module';
 import { TenantModule } from './tenants/tenant.module';
 import { TenantMiddleware } from './tenants/tenant.middleware';
+import { ResultadosModule } from './resultados/resultados.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { TenantMiddleware } from './tenants/tenant.middleware';
     CitasModule,
     DatabaseModule,
     TenantModule,
+    ResultadosModule,
   ],
   controllers: [],
   providers: [

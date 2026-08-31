@@ -101,6 +101,6 @@ exports.SeederMaestro = SeederMaestro = SeederMaestro_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(tenant_entity_1.Tenant)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
-    tenant_connection_manager_1.TenantConnectionManager])
+        tenant_connection_manager_1.TenantConnectionManager])
 ], SeederMaestro);
 //# sourceMappingURL=seeder-maestro.js.map

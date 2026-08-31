@@ -101,11 +101,58 @@ export class AutenticacionService {
       };
     } else {
       // 1. Consultar el servicio de integración hospitalario SAP PO
-      datosDemograficos = await this.hospitalService.consultarDatosDemograficos({
-        tipoDocumento,
-        numeroDocumento,
-        fechaNacimiento,
-      });
+      try {
+        datosDemograficos = await this.hospitalService.consultarDatosDemograficos({
+          tipoDocumento,
+          numeroDocumento,
+          fechaNacimiento,
+        });
+      } catch (errApi: any) {
+        this.logger.warn(
+          `⚠️ Error al consultar SAP PO para doc ${numeroDocLimpio}: ${errApi.message}. Intentando localización en BD local...`,
+        );
+
+        // Fallback: Si el paciente ya existe en nuestra base de datos local
+        const pacienteLocal = await this.repositorioPaciente.findOne({
+          where: { numeroDocumento: numeroDocLimpio },
+        });
+
+        if (pacienteLocal) {
+          // Validar fecha de nacimiento si está especificada
+          if (fechaNacimiento && pacienteLocal.fechaNacimiento) {
+            const fechaIngresadaNorm = this.hospitalService.normalizarFecha(fechaNacimiento);
+            const fechaBdNorm = this.hospitalService.normalizarFecha(
+              pacienteLocal.fechaNacimiento.toISOString().slice(0, 10),
+            );
+
+            if (fechaIngresadaNorm && fechaBdNorm && fechaIngresadaNorm !== fechaBdNorm) {
+              throw new BadRequestException(
+                'La fecha de nacimiento ingresada no coincide con la registrada para este documento.',
+              );
+            }
+          }
+
+          datosDemograficos = {
+            numeroPaciente: pacienteLocal.id,
+            nombres: pacienteLocal.nombres,
+            apellidos: pacienteLocal.apellidos,
+            nombreCompleto: `${pacienteLocal.nombres} ${pacienteLocal.apellidos}`.trim(),
+            tipoDocumento: pacienteLocal.tipoDocumento,
+            numeroDocumento: pacienteLocal.numeroDocumento,
+            fechaNacimiento: pacienteLocal.fechaNacimiento
+              ? pacienteLocal.fechaNacimiento.toISOString().slice(0, 10)
+              : fechaNacimiento,
+            correoElectronico: pacienteLocal.correoElectronico,
+            telefono: pacienteLocal.telefono,
+            direccion: pacienteLocal.direccion,
+            ciudad: pacienteLocal.ciudad,
+            genero: pacienteLocal.genero,
+          };
+          this.logger.log(`✅ Paciente localizado en BD local para generación de OTP: ${pacienteLocal.correoElectronico}`);
+        } else {
+          throw errApi;
+        }
+      }
     }
 
     if (!datosDemograficos || !datosDemograficos.correoElectronico) {
