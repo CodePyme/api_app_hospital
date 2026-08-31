@@ -69,11 +69,24 @@ let IntegracionHospitalService = IntegracionHospitalService_1 = class Integracio
     normalizarFecha(fecha) {
         if (!fecha)
             return '';
-        const soloDigitos = fecha.replace(/\D/g, '');
-        if (soloDigitos.length === 8) {
-            return `${soloDigitos.slice(0, 4)}-${soloDigitos.slice(4, 6)}-${soloDigitos.slice(6, 8)}`;
+        const limpia = fecha.trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(limpia)) {
+            return limpia;
         }
-        return fecha.trim();
+        if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(limpia)) {
+            const partes = limpia.split(/[\/\-]/);
+            return `${partes[2]}-${partes[1]}-${partes[0]}`;
+        }
+        const soloDigitos = limpia.replace(/\D/g, '');
+        if (soloDigitos.length === 8) {
+            if (soloDigitos.startsWith('19') || soloDigitos.startsWith('20')) {
+                return `${soloDigitos.slice(0, 4)}-${soloDigitos.slice(4, 6)}-${soloDigitos.slice(6, 8)}`;
+            }
+            else {
+                return `${soloDigitos.slice(4, 8)}-${soloDigitos.slice(2, 4)}-${soloDigitos.slice(0, 2)}`;
+            }
+        }
+        return limpia;
     }
     getEndpointDemograficos() {
         const urlConfigurada = this.configService.get('DEMOGRAFICOS_API_URL');

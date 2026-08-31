@@ -19,6 +19,7 @@ const citas_module_1 = require("./citas/citas.module");
 const database_module_1 = require("./database/database.module");
 const tenant_module_1 = require("./tenants/tenant.module");
 const tenant_middleware_1 = require("./tenants/tenant.middleware");
+const resultados_module_1 = require("./resultados/resultados.module");
 let AppModule = class AppModule {
     configure(consumer) {
         consumer
@@ -31,9 +32,9 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             throttler_1.ThrottlerModule.forRoot([{
-                ttl: 60000,
-                limit: 100,
-            }]),
+                    ttl: 60000,
+                    limit: 100,
+                }]),
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
                 load: [base_de_datos_config_1.configuracionBaseDeDatos],
@@ -63,6 +64,7 @@ exports.AppModule = AppModule = __decorate([
             citas_module_1.CitasModule,
             database_module_1.DatabaseModule,
             tenant_module_1.TenantModule,
+            resultados_module_1.ResultadosModule,
         ],
         controllers: [],
         providers: [
