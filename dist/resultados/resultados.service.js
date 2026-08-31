@@ -191,24 +191,47 @@ let ResultadosService = class ResultadosService {
             Orders: [internalNumber],
             ReportInfo: {
                 Code: codeReporte,
-                OnlyURL: true,
+                OnlyURL: false,
             },
         };
-        this.logger.log(`📄 Consultando detalle de orden ${internalNumber} en ${url}`);
+        this.logger.log(`📄 Consultando detalle de orden ${internalNumber} en ${url} (probando Base64 con OnlyURL: false)`);
         try {
-            const resp = await fetch(url, {
+            let resp = await fetch(url, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(bodyPeticion),
             });
-            const responseText = await resp.text().catch(() => '');
+            let responseText = await resp.text().catch(() => '');
             let datos = null;
             try {
                 datos = JSON.parse(responseText);
             }
             catch (e) { }
-            const ordenes = datos?.Orders || [];
-            const detalle = ordenes.length > 0 ? ordenes[0] : null;
+            let ordenes = datos?.Orders || [];
+            let detalle = ordenes.length > 0 ? ordenes[0] : null;
+            if (!detalle?.ResultPdf || detalle.ResultPdf.includes('id=0')) {
+                this.logger.log(`⚠️ ResultPdf no disponible en Base64 directo, reintentando con OnlyURL: true`);
+                bodyPeticion.ReportInfo.OnlyURL = true;
+                const resp2 = await fetch(url, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(bodyPeticion),
+                });
+                const text2 = await resp2.text().catch(() => '');
+                try {
+                    const datos2 = JSON.parse(text2);
+                    if (datos2?.Orders?.length > 0) {
+                        datos = datos2;
+                        ordenes = datos2.Orders;
+                        detalle = ordenes[0];
+                        responseText = text2;
+                    }
+                }
+                catch (e) { }
+            }
+            if (detalle?.ResultPdf) {
+                this.logger.log(`📑 [RESULT PDF LABCORE]: Muestra: ${detalle.ResultPdf.slice(0, 100)}... | Longitud: ${detalle.ResultPdf.length}`);
+            }
             if (detalle || (datos && datos.Status?.Success === true)) {
                 if (detalle && detalle.ResultPdf) {
                     if (detalle.ResultPdf.includes('id=0') || detalle.ResultPdf.endsWith('urlKey=')) {
