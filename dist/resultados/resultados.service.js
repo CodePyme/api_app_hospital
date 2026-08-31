@@ -185,7 +185,7 @@ let ResultadosService = class ResultadosService {
         }
         const headers = await this.obtenerHeadersPeticion();
         const url = `${this.baseApiUrl}/OrderDetail`;
-        const codeReporte = this.configService.get('LABCORE_REPORT_CODE') || 'LRPT001';
+        const codeReporte = this.configService.get('LABCORE_REPORT_CODE') || 'RP001';
         const bodyPeticion = {
             ClientCode: clientCode || '',
             Orders: [internalNumber],
@@ -194,43 +194,24 @@ let ResultadosService = class ResultadosService {
                 OnlyURL: false,
             },
         };
-        this.logger.log(`📄 Consultando detalle de orden ${internalNumber} en ${url} (probando Base64 con OnlyURL: false)`);
+        this.logger.log(`📄 Consultando detalle de orden ${internalNumber} en ${url} con ReportInfo (Code: ${codeReporte}, OnlyURL: false)`);
         try {
-            let resp = await fetch(url, {
+            const resp = await fetch(url, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(bodyPeticion),
             });
-            let responseText = await resp.text().catch(() => '');
+            const responseText = await resp.text().catch(() => '');
             let datos = null;
             try {
                 datos = JSON.parse(responseText);
             }
             catch (e) { }
-            let ordenes = datos?.Orders || [];
-            let detalle = ordenes.length > 0 ? ordenes[0] : null;
-            if (!detalle?.ResultPdf || detalle.ResultPdf.includes('id=0')) {
-                this.logger.log(`⚠️ ResultPdf no disponible en Base64 directo, reintentando con OnlyURL: true`);
-                bodyPeticion.ReportInfo.OnlyURL = true;
-                const resp2 = await fetch(url, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify(bodyPeticion),
-                });
-                const text2 = await resp2.text().catch(() => '');
-                try {
-                    const datos2 = JSON.parse(text2);
-                    if (datos2?.Orders?.length > 0) {
-                        datos = datos2;
-                        ordenes = datos2.Orders;
-                        detalle = ordenes[0];
-                        responseText = text2;
-                    }
-                }
-                catch (e) { }
-            }
+            const ordenes = datos?.Orders || [];
+            const detalle = ordenes.length > 0 ? ordenes[0] : null;
             if (detalle?.ResultPdf) {
-                this.logger.log(`📑 [RESULT PDF LABCORE]: Muestra: ${detalle.ResultPdf.slice(0, 100)}... | Longitud: ${detalle.ResultPdf.length}`);
+                const esBase64 = detalle.ResultPdf.startsWith('JVBERi') || detalle.ResultPdf.length > 200;
+                this.logger.log(`📑 [PDF BASE64 OFICIAL DE LABCORE RECIBIDO]: EsBase64: ${esBase64} | Longitud: ${detalle.ResultPdf.length}`);
             }
             if (detalle || (datos && datos.Status?.Success === true)) {
                 if (detalle && detalle.ResultPdf) {
@@ -246,10 +227,6 @@ let ResultadosService = class ResultadosService {
                     status: datos?.Status || {},
                 };
             }
-            if (!resp.ok) {
-                this.logger.error(`❌ Error en OrderDetail (${resp.status}): ${responseText}`);
-                throw new common_1.BadRequestException(`Error al consultar el detalle de la orden (HTTP ${resp.status})`);
-            }
             return {
                 exito: true,
                 mensaje: 'Detalle de la orden obtenido correctamente',
@@ -258,8 +235,6 @@ let ResultadosService = class ResultadosService {
             };
         }
         catch (err) {
-            if (err instanceof common_1.BadRequestException)
-                throw err;
             this.logger.error(`❌ Excepción al obtener detalle de la orden: ${err.message}`);
             throw new common_1.BadRequestException(`Error al consultar el detalle en Labcore: ${err.message}`);
         }
