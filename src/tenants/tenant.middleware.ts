@@ -4,7 +4,6 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Request, Response, NextFunction } from 'express';
 import { TenantService } from './tenant.service';
 import { TenantConnectionManager } from './tenant-connection.manager';
@@ -28,20 +27,20 @@ export class TenantMiddleware implements NestMiddleware {
   constructor(
     private readonly tenantService: TenantService,
     private readonly connectionManager: TenantConnectionManager,
-    private readonly configService: ConfigService,
   ) {}
 
   async use(req: Request, res: Response, next: NextFunction): Promise<void> {
     // Resolver el dominio del tenant:
-    // 1. Header X-Tenant-Domain — SOLO en entornos de desarrollo/testing local.
-    //    En producción nunca se confía en un header controlado por el cliente
-    //    para decidir a qué base de datos de tenant conectarse.
-    // 2. Header Host (siempre, y única fuente válida en producción)
-    const entorno = this.configService.get<string>('ENTORNO', 'development');
-    const permiteHeaderTenant = entorno !== 'production' && entorno !== 'prd';
-    const headerTenant = permiteHeaderTenant ? (req.headers['x-tenant-domain'] as string) : undefined;
-
-    const dominioRaw = headerTenant || (req.headers['host'] as string) || '';
+    // 1. Header X-Tenant-Domain (siempre) — es la ÚNICA fuente confiable, porque el
+    //    frontend de cada tenant vive en un dominio distinto al de esta API
+    //    (ej. portalpacientesf.codepyme.io vs. apiportalpacientesf.codepyme.io).
+    //    El header Host de la petición HTTP siempre es el dominio de la API, nunca
+    //    el del tenant, así que NO sirve para diferenciar tenants en esta arquitectura.
+    // 2. Header Host, solo como último fallback (peticiones directas al dominio de la API).
+    const dominioRaw =
+      (req.headers['x-tenant-domain'] as string) ||
+      (req.headers['host'] as string) ||
+      '';
 
     // Limpiar puerto del dominio (ej: "localhost:3000" → "localhost")
     const dominio = dominioRaw.split(':')[0].toLowerCase().trim();
