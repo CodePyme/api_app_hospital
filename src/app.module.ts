@@ -21,15 +21,19 @@ import { ResultadosModule } from './resultados/resultados.module';
     }]),
 
     // Configuración de variables de entorno (disponible globalmente).
-    // Si el proceso necesita leer el .env desde una ruta distinta a la carpeta de trabajo
-    // (por ejemplo, un despliegue donde el working dir no coincide con la ubicación del .env),
-    // se define ENV_FILE_PATH como variable de entorno del propio proceso (no del .env,
-    // ya que aún no se ha cargado) al arrancar la app. Así se evita hardcodear rutas de
-    // infraestructura específicas del proveedor de hosting en el código fuente.
+    // Busca el .env en la carpeta de trabajo, y opcionalmente en una ruta extra
+    // vía ENV_FILE_PATH (variable del proceso, no del .env) para despliegues donde
+    // el working dir no coincide con la ubicación real del .env. En este servidor de
+    // Forge el .env vive en la raíz del sitio, no en el directorio de trabajo del
+    // proceso (current/), así que se mantiene esa ruta explícita como fallback.
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuracionBaseDeDatos],
-      envFilePath: process.env.ENV_FILE_PATH ? ['.env', process.env.ENV_FILE_PATH] : ['.env'],
+      envFilePath: [
+        '.env',
+        process.env.ENV_FILE_PATH,
+        '/home/forge/apiportalpacientesf.codepyme.io/.env',
+      ].filter((ruta): ruta is string => Boolean(ruta)),
     }),
 
     // Conexión a base de datos PostgreSQL
