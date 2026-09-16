@@ -66,92 +66,57 @@ export class AutenticacionService {
 
     let datosDemograficos: any = null;
 
-    // Configuración especial de acceso para Administrador
-    if (numeroDocLimpio === '123456789') {
-      const fechaIngresada = (fechaNacimiento || '').trim();
+    // 1. Consultar el servicio de integración hospitalario SAP PO
+    try {
+      datosDemograficos = await this.hospitalService.consultarDatosDemograficos({
+        tipoDocumento,
+        numeroDocumento,
+        fechaNacimiento,
+      });
+    } catch (errApi: any) {
+      this.logger.warn(
+        `⚠️ Error al consultar SAP PO para doc ${numeroDocLimpio}: ${errApi.message}. Intentando localización en BD local...`,
+      );
 
-      // Validar que corresponda al 07 de Enero de 1990 (07/01/1990 o 1990-01-07 o 1990-07-01)
-      const esFechaAdminValida =
-        fechaIngresada.includes('1990') &&
-        (fechaIngresada.includes('07') || fechaIngresada.includes('7')) &&
-        (fechaIngresada.includes('01') || fechaIngresada.includes('1'));
+      // Fallback: Si el paciente ya existe en nuestra base de datos local
+      const pacienteLocal = await this.repositorioPaciente.findOne({
+        where: { numeroDocumento: numeroDocLimpio },
+      });
 
-      if (!esFechaAdminValida) {
-        throw new BadRequestException(
-          'La fecha de nacimiento no coincide con la registrada para la cuenta de administrador.',
-        );
-      }
+      if (pacienteLocal) {
+        // Validar fecha de nacimiento si está especificada
+        if (fechaNacimiento && pacienteLocal.fechaNacimiento) {
+          const fechaIngresadaNorm = this.hospitalService.normalizarFecha(fechaNacimiento);
+          const fechaBdNorm = this.hospitalService.normalizarFecha(
+            pacienteLocal.fechaNacimiento.toISOString().slice(0, 10),
+          );
 
-      datosDemograficos = {
-        numeroPaciente: '0000000001',
-        nombres: 'Administrador',
-        apellidos: 'Principal',
-        nombreCompleto: 'Administrador Principal',
-        tipoDocumento: 'CC',
-        descDocumento: 'Céd.Ciudadanía',
-        numeroDocumento: '123456789',
-        fechaNacimiento: '1990-01-07',
-        edad: '36 años',
-        sexo: 'MASCULINO',
-        correoElectronico: 'cristian@codepyme.com',
-        telefono: '3042957517',
-        direccion: 'Sede Administrativa San Vicente Fundación',
-        ciudad: 'Medellín',
-        genero: 'masculino',
-      };
-    } else {
-      // 1. Consultar el servicio de integración hospitalario SAP PO
-      try {
-        datosDemograficos = await this.hospitalService.consultarDatosDemograficos({
-          tipoDocumento,
-          numeroDocumento,
-          fechaNacimiento,
-        });
-      } catch (errApi: any) {
-        this.logger.warn(
-          `⚠️ Error al consultar SAP PO para doc ${numeroDocLimpio}: ${errApi.message}. Intentando localización en BD local...`,
-        );
-
-        // Fallback: Si el paciente ya existe en nuestra base de datos local
-        const pacienteLocal = await this.repositorioPaciente.findOne({
-          where: { numeroDocumento: numeroDocLimpio },
-        });
-
-        if (pacienteLocal) {
-          // Validar fecha de nacimiento si está especificada
-          if (fechaNacimiento && pacienteLocal.fechaNacimiento) {
-            const fechaIngresadaNorm = this.hospitalService.normalizarFecha(fechaNacimiento);
-            const fechaBdNorm = this.hospitalService.normalizarFecha(
-              pacienteLocal.fechaNacimiento.toISOString().slice(0, 10),
+          if (fechaIngresadaNorm && fechaBdNorm && fechaIngresadaNorm !== fechaBdNorm) {
+            throw new BadRequestException(
+              'La fecha de nacimiento ingresada no coincide con la registrada para este documento.',
             );
-
-            if (fechaIngresadaNorm && fechaBdNorm && fechaIngresadaNorm !== fechaBdNorm) {
-              throw new BadRequestException(
-                'La fecha de nacimiento ingresada no coincide con la registrada para este documento.',
-              );
-            }
           }
-
-          datosDemograficos = {
-            numeroPaciente: pacienteLocal.id,
-            nombres: pacienteLocal.nombres,
-            apellidos: pacienteLocal.apellidos,
-            nombreCompleto: `${pacienteLocal.nombres} ${pacienteLocal.apellidos}`.trim(),
-            tipoDocumento: pacienteLocal.tipoDocumento,
-            numeroDocumento: pacienteLocal.numeroDocumento,
-            fechaNacimiento: pacienteLocal.fechaNacimiento
-              ? pacienteLocal.fechaNacimiento.toISOString().slice(0, 10)
-              : fechaNacimiento,
-            correoElectronico: pacienteLocal.correoElectronico,
-            telefono: pacienteLocal.telefono,
-            direccion: pacienteLocal.direccion,
-            ciudad: pacienteLocal.ciudad,
-            genero: pacienteLocal.genero,
-          };
-          this.logger.log(`✅ Paciente localizado en BD local para generación de OTP: ${pacienteLocal.correoElectronico}`);
-        } else {
-          throw errApi;
         }
+
+        datosDemograficos = {
+          numeroPaciente: pacienteLocal.id,
+          nombres: pacienteLocal.nombres,
+          apellidos: pacienteLocal.apellidos,
+          nombreCompleto: `${pacienteLocal.nombres} ${pacienteLocal.apellidos}`.trim(),
+          tipoDocumento: pacienteLocal.tipoDocumento,
+          numeroDocumento: pacienteLocal.numeroDocumento,
+          fechaNacimiento: pacienteLocal.fechaNacimiento
+            ? pacienteLocal.fechaNacimiento.toISOString().slice(0, 10)
+            : fechaNacimiento,
+          correoElectronico: pacienteLocal.correoElectronico,
+          telefono: pacienteLocal.telefono,
+          direccion: pacienteLocal.direccion,
+          ciudad: pacienteLocal.ciudad,
+          genero: pacienteLocal.genero,
+        };
+        this.logger.log(`✅ Paciente localizado en BD local para generación de OTP: ${pacienteLocal.correoElectronico}`);
+      } else {
+        throw errApi;
       }
     }
 
@@ -330,15 +295,10 @@ export class AutenticacionService {
       paciente = await this.repositorioPaciente.save(paciente);
     }
 
-    // Determinar rol administrativo
-    const esCuentaAdmin =
-      numeroDocumento === '123456789' ||
-      registroOtp.correo === 'cristian@codepyme.com' ||
-      registroOtp.correo === 'admin@codepyme.com';
-
-    const rolAsignado = esCuentaAdmin ? RolUsuario.ADMINISTRADOR : RolUsuario.PACIENTE;
-
-    // Sincronizar o crear usuario en BD
+    // Sincronizar o crear usuario en BD.
+    // El acceso vía OTP siempre corresponde al rol PACIENTE; los roles de personal
+    // (ADMINISTRADOR, MEDICO, RECEPCIONISTA) se otorgan por gestión administrativa,
+    // nunca automáticamente a partir de un documento o correo en el flujo de OTP.
     let usuario = await this.repositorioUsuario.findOne({
       where: { correoElectronico: registroOtp.correo },
     });
@@ -350,16 +310,13 @@ export class AutenticacionService {
         apellidos: paciente.apellidos,
         correoElectronico: registroOtp.correo,
         contrasena: contrasenaGenerica,
-        rol: rolAsignado,
+        rol: RolUsuario.PACIENTE,
         activo: true,
       });
       usuario = await this.repositorioUsuario.save(usuario);
     } else {
       usuario.nombres = paciente.nombres;
       usuario.apellidos = paciente.apellidos;
-      if (esCuentaAdmin && usuario.rol !== RolUsuario.ADMINISTRADOR) {
-        usuario.rol = RolUsuario.ADMINISTRADOR;
-      }
       usuario = await this.repositorioUsuario.save(usuario);
     }
 
@@ -410,6 +367,7 @@ export class AutenticacionService {
     const nuevoUsuario = this.repositorioUsuario.create({
       ...registrarUsuarioDto,
       contrasena: contrasenaHasheada,
+      rol: RolUsuario.PACIENTE,
     });
 
     const usuarioGuardado = await this.repositorioUsuario.save(nuevoUsuario);

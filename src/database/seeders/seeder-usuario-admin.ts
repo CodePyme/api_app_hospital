@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { Usuario, RolUsuario } from '../../autenticacion/entities/usuario.entity';
 import { TenantService } from '../../tenants/tenant.service';
@@ -9,12 +10,12 @@ export class SeederUsuarioAdmin implements OnApplicationBootstrap {
   private readonly logger = new Logger(SeederUsuarioAdmin.name);
 
   private readonly CORREO_ADMIN = 'admin@codepyme.com';
-  private readonly CONTRASENA_ADMIN = 'admin123';
   private readonly RONDAS_HASH = 10;
 
   constructor(
     private readonly tenantService: TenantService,
     private readonly connectionManager: TenantConnectionManager,
+    private readonly configService: ConfigService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -22,6 +23,14 @@ export class SeederUsuarioAdmin implements OnApplicationBootstrap {
   }
 
   private async sembrarUsuarioAdmin(): Promise<void> {
+    const contrasenaAdmin = this.configService.get<string>('ADMIN_SEED_PASSWORD');
+    if (!contrasenaAdmin) {
+      this.logger.warn(
+        '⚠️ ADMIN_SEED_PASSWORD no está configurada: se omite la creación automática del usuario administrador.',
+      );
+      return;
+    }
+
     try {
       // 1. Obtener todos los tenants activos
       const tenantsPaginados = await this.tenantService.obtenerTodosTenants(1, 1000);
@@ -45,7 +54,7 @@ export class SeederUsuarioAdmin implements OnApplicationBootstrap {
           }
 
           const contrasenaHasheada = await bcrypt.hash(
-            this.CONTRASENA_ADMIN,
+            contrasenaAdmin,
             this.RONDAS_HASH,
           );
 

@@ -5,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Exclude } from 'class-transformer';
 
 @Entity({ name: 'tenants' })
 export class Tenant {
@@ -26,9 +27,11 @@ export class Tenant {
   @Column({ name: 'db_port', type: 'int', default: 5432 })
   dbPort: number;
 
+  @Exclude()
   @Column({ name: 'db_username', type: 'varchar', length: 100 })
   dbUsername: string;
 
+  @Exclude()
   @Column({ name: 'db_password', type: 'varchar', length: 255 })
   dbPassword: string;
 

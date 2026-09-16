@@ -14,24 +14,36 @@ const logger = new Logger('Bootstrap'); // Reload .env configs
  */
 function obtenerOrigenesPermitidos(): string[] | boolean {
   const origenesEnv = process.env.CORS_ORIGINS;
-  if (!origenesEnv) return true; // dev: permitir todos
-  return origenesEnv.split(',').map((o) => o.trim()).filter(Boolean);
+  if (origenesEnv) {
+    return origenesEnv.split(',').map((o) => o.trim()).filter(Boolean);
+  }
+
+  const esProduccion = process.env.ENTORNO === 'production' || process.env.ENTORNO === 'prd';
+  if (esProduccion) {
+    // En producción nunca se abre a todos los orígenes por defecto: si falta la
+    // variable, se bloquea el acceso cross-origin hasta que se configure explícitamente.
+    logger.warn(
+      '⚠️ CORS_ORIGINS no está configurada en producción: se bloquean todos los orígenes cross-origin.',
+    );
+    return [];
+  }
+
+  return true; // dev: permitir todos
 }
 
 async function iniciarAplicacion() {
   // ─── DIAGNÓSTICO DE VARIABLES DE ENTORNO ─────────────────────────────────
-  // Se imprime ANTES de crear la app para que aparezca aunque la BD falle.
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🔍 DIAGNÓSTICO DE CONFIGURACIÓN');
-  console.log(`   DB_HOST     : ${process.env.DB_HOST ?? '(no definido)'}`);
-  console.log(`   DB_PORT     : ${process.env.DB_PORT ?? '(no definido)'}`);
-  console.log(`   DB_DATABASE : ${process.env.DB_DATABASE ?? '(no definido)'}`);
-  console.log(`   DB_USERNAME : ${process.env.DB_USERNAME ?? '(no definido)'}`);
-  console.log(`   DB_PASSWORD : ${process.env.DB_PASSWORD ? '***' : '(no definido)'}`);
-  console.log(`   ENTORNO     : ${process.env.ENTORNO ?? '(no definido)'}`);
-  console.log(`   CORS_ORIGINS: ${process.env.CORS_ORIGINS ?? '(no definido - permite todo)'}`);
-  console.log(`   CWD         : ${process.cwd()}`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  // Solo se informa si cada variable está o no configurada; nunca sus valores
+  // (host, usuario, etc. son información sensible de infraestructura que no
+  // debe quedar en los logs del servidor).
+  logger.log('🔍 Diagnóstico de configuración (solo presencia, no valores):');
+  logger.log(`   DB_HOST     : ${process.env.DB_HOST ? 'configurado' : 'no definido'}`);
+  logger.log(`   DB_PORT     : ${process.env.DB_PORT ? 'configurado' : 'no definido'}`);
+  logger.log(`   DB_DATABASE : ${process.env.DB_DATABASE ? 'configurado' : 'no definido'}`);
+  logger.log(`   DB_USERNAME : ${process.env.DB_USERNAME ? 'configurado' : 'no definido'}`);
+  logger.log(`   DB_PASSWORD : ${process.env.DB_PASSWORD ? 'configurado' : 'no definido'}`);
+  logger.log(`   ENTORNO     : ${process.env.ENTORNO ?? '(no definido)'}`);
+  logger.log(`   CORS_ORIGINS: ${process.env.CORS_ORIGINS ? 'configurado' : 'no definido'}`);
   // ─────────────────────────────────────────────────────────────────────────
 
   const aplicacion = await NestFactory.create(AppModule);

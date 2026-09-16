@@ -30,7 +30,7 @@ export class Usuario {
   @Column({ name: 'contrasena', type: 'varchar', length: 255 })
   contrasena: string;
 
-  @Column({ name: 'rol', type: 'enum', enum: RolUsuario, default: RolUsuario.RECEPCIONISTA })
+  @Column({ name: 'rol', type: 'enum', enum: RolUsuario, default: RolUsuario.PACIENTE })
   rol: RolUsuario;
 
   @Column({ name: 'activo', type: 'boolean', default: true })

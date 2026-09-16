@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException, Inject, Scope } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, ForbiddenException, Inject, Scope } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { REQUEST } from '@nestjs/core';
 import type { Request, Response } from 'express';
@@ -205,11 +205,20 @@ export class ResultadosService {
   }
 
   /**
-   * Obtiene el detalle (estudios, analitos, PDF) de una o más órdenes
+   * Obtiene el detalle (estudios, analitos, PDF) de una o más órdenes.
+   * Si quien consulta tiene rol paciente, se valida que la orden pertenezca a su propia
+   * lista de órdenes antes de continuar (evita IDOR sobre resultados de otros pacientes).
    */
-  async obtenerDetalleOrden(internalNumber: string, clientCode = '') {
+  async obtenerDetalleOrden(internalNumber: string, clientCode = '', usuario?: any) {
     if (!internalNumber) {
       throw new BadRequestException('El identificador de la orden (InternalNumber) es requerido.');
+    }
+
+    if (usuario?.rol === 'paciente') {
+      const esPropia = await this.ordenPerteneceAlPaciente(internalNumber, usuario);
+      if (!esPropia) {
+        throw new ForbiddenException('La orden solicitada no pertenece al paciente autenticado.');
+      }
     }
 
     const headers = await this.obtenerHeadersPeticion();
@@ -303,6 +312,23 @@ export class ResultadosService {
       ? pdfUrlKey
       : `${this.baseApiUrl}${pdfUrlKey.startsWith('/') ? '' : '/'}${pdfUrlKey}`;
 
+    // Evitar SSRF: solo se permite hacer proxy hacia el mismo origen configurado
+    // para la integración de Labcore. Nunca se debe hacer fetch (ni menos adjuntar
+    // credenciales de la integración) a un host arbitrario provisto por el cliente.
+    let origenSolicitado: string;
+    let origenPermitido: string;
+    try {
+      origenSolicitado = new URL(urlCompleta).origin;
+      origenPermitido = new URL(this.baseApiUrl).origin;
+    } catch {
+      throw new BadRequestException('La URL del documento no es válida.');
+    }
+
+    if (origenSolicitado !== origenPermitido) {
+      this.logger.warn(`🚫 Intento de proxy hacia un origen no autorizado: ${origenSolicitado}`);
+      throw new BadRequestException('La URL del documento no pertenece a un origen autorizado.');
+    }
+
     this.logger.log(`📥 Proxying PDF desde ${urlCompleta}`);
 
     try {
@@ -343,6 +369,24 @@ export class ResultadosService {
       if (err instanceof BadRequestException) throw err;
       this.logger.error(`❌ Excepción al descargar PDF: ${err.message}`);
       throw new BadRequestException(`Error al obtener el archivo PDF: ${err.message}`);
+    }
+  }
+
+  /**
+   * Verifica que una orden (InternalNumber) esté entre las órdenes propias del paciente,
+   * consultando su propio listado en Labcore antes de permitir ver el detalle.
+   */
+  private async ordenPerteneceAlPaciente(internalNumber: string, usuario: any): Promise<boolean> {
+    try {
+      const respuesta = await this.obtenerOrdenesLaboratorio(usuario, { limite: 500 });
+      const ordenes: any[] = respuesta?.datos || [];
+      return ordenes.some((orden) => {
+        const clave = Object.keys(orden || {}).find((k) => k.toLowerCase() === 'internalnumber');
+        return clave ? String(orden[clave]) === String(internalNumber) : false;
+      });
+    } catch (err: any) {
+      this.logger.warn(`No fue posible validar la propiedad de la orden ${internalNumber}: ${err.message}`);
+      return false;
     }
   }
 }

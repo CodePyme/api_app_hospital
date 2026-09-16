@@ -42,16 +42,18 @@ export class ResultadosController {
   @UseGuards(GuardJwtAutenticacion)
   @Post('detalle')
   async obtenerDetalleOrden(
+    @Req() req: Request,
     @Body('internalNumber') internalNumber: string,
     @Body('clientCode') clientCode?: string,
   ) {
-    return this.resultadosService.obtenerDetalleOrden(internalNumber, clientCode);
+    return this.resultadosService.obtenerDetalleOrden(internalNumber, clientCode, req.user);
   }
 
   /**
    * GET /resultados/pdf
    * Proxy para visualizar/descargar el archivo PDF del resultado (acceso directo mediante urlKey seguro de Labcore)
    */
+  @UseGuards(GuardJwtAutenticacion)
   @Get('pdf')
   async descargarPdf(@Query('url') pdfUrl: string, @Res() res: Response) {
     return this.resultadosService.proxyPdf(pdfUrl, res);

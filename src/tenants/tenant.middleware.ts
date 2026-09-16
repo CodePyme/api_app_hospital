@@ -4,6 +4,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response, NextFunction } from 'express';
 import { TenantService } from './tenant.service';
 import { TenantConnectionManager } from './tenant-connection.manager';
@@ -27,16 +28,20 @@ export class TenantMiddleware implements NestMiddleware {
   constructor(
     private readonly tenantService: TenantService,
     private readonly connectionManager: TenantConnectionManager,
+    private readonly configService: ConfigService,
   ) {}
 
   async use(req: Request, res: Response, next: NextFunction): Promise<void> {
     // Resolver el dominio del tenant:
-    // 1. Header X-Tenant-Domain (para desarrollo/testing local)
-    // 2. Header Host (producción)
-    const dominioRaw =
-      (req.headers['x-tenant-domain'] as string) ||
-      (req.headers['host'] as string) ||
-      '';
+    // 1. Header X-Tenant-Domain — SOLO en entornos de desarrollo/testing local.
+    //    En producción nunca se confía en un header controlado por el cliente
+    //    para decidir a qué base de datos de tenant conectarse.
+    // 2. Header Host (siempre, y única fuente válida en producción)
+    const entorno = this.configService.get<string>('ENTORNO', 'development');
+    const permiteHeaderTenant = entorno !== 'production' && entorno !== 'prd';
+    const headerTenant = permiteHeaderTenant ? (req.headers['x-tenant-domain'] as string) : undefined;
+
+    const dominioRaw = headerTenant || (req.headers['host'] as string) || '';
 
     // Limpiar puerto del dominio (ej: "localhost:3000" → "localhost")
     const dominio = dominioRaw.split(':')[0].toLowerCase().trim();

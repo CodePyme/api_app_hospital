@@ -14,12 +14,20 @@ import { IntegracionHospitalService } from './services/integracion-hospital.serv
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: (configuracionServicio: ConfigService) => ({
-        secret: configuracionServicio.get<string>('JWT_SECRETO'),
-        signOptions: {
-          expiresIn: (configuracionServicio.get<string>('JWT_EXPIRACION') || '1d') as any,
-        },
-      }),
+      useFactory: (configuracionServicio: ConfigService) => {
+        const secreto = configuracionServicio.get<string>('JWT_SECRETO');
+        if (!secreto) {
+          throw new Error(
+            'JWT_SECRETO no está configurado. Defina esta variable de entorno antes de iniciar la aplicación.',
+          );
+        }
+        return {
+          secret: secreto,
+          signOptions: {
+            expiresIn: (configuracionServicio.get<string>('JWT_EXPIRACION') || '1d') as any,
+          },
+        };
+      },
       inject: [ConfigService],
     }),
   ],
