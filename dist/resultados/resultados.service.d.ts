@@ -14,6 +14,7 @@ export declare class ResultadosService {
     private get baseApiUrl();
     private get login();
     private get password();
+    private get timeoutMs();
     autenticar(): Promise<{
         authKey: string;
         cookie: string;

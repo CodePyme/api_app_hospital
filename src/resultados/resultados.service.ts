@@ -23,18 +23,35 @@ export class ResultadosService {
   ) {}
 
   private get baseApiUrl(): string {
-    return (
-      this.configService.get<string>('LABCORE_API_URL') ||
-      'http://172.28.64.81:8180/APIIntegracion/Integration.svc'
-    ).replace(/\/+$/, '');
+    const url = this.configService.get<string>('LABCORE_API_URL');
+    if (!url) {
+      this.logger.error('❌ La variable LABCORE_API_URL no está configurada en el archivo .env');
+      throw new BadRequestException('El servicio de laboratorios no está configurado (LABCORE_API_URL faltante en .env).');
+    }
+    return url.trim().replace(/\/+$/, '');
   }
 
   private get login(): string {
-    return this.configService.get<string>('LABCORE_LOGIN') || 'QXBpSW50ZWdyYWNpb24=';
+    const login = this.configService.get<string>('LABCORE_LOGIN');
+    if (!login) {
+      this.logger.error('❌ La variable LABCORE_LOGIN no está configurada en el archivo .env');
+      throw new BadRequestException('Credenciales de laboratorios no configuradas (LABCORE_LOGIN faltante en .env).');
+    }
+    return login.trim();
   }
 
   private get password(): string {
-    return this.configService.get<string>('LABCORE_PASSWORD') || 'QXBpSW50ZWdyYWNpb24=';
+    const pass = this.configService.get<string>('LABCORE_PASSWORD');
+    if (!pass) {
+      this.logger.error('❌ La variable LABCORE_PASSWORD no está configurada en el archivo .env');
+      throw new BadRequestException('Credenciales de laboratorios no configuradas (LABCORE_PASSWORD faltante en .env).');
+    }
+    return pass.trim();
+  }
+
+  private get timeoutMs(): number {
+    const val = this.configService.get<string | number>('LABCORE_TIMEOUT_MS');
+    return val ? parseInt(String(val), 10) : 10000;
   }
 
   /**
@@ -62,6 +79,7 @@ export class ResultadosService {
           Login: this.login,
           Password: this.password,
         }),
+        signal: AbortSignal.timeout(this.timeoutMs),
       });
 
       if (!resp.ok) {
@@ -181,6 +199,7 @@ export class ResultadosService {
         method: 'POST',
         headers,
         body: JSON.stringify(bodyPeticion),
+        signal: AbortSignal.timeout(this.timeoutMs),
       });
 
       if (!resp.ok) {
@@ -232,6 +251,7 @@ export class ResultadosService {
         method: 'POST',
         headers,
         body: JSON.stringify(bodyPeticion),
+        signal: AbortSignal.timeout(this.timeoutMs),
       });
 
       const responseText = await resp.text().catch(() => '');
@@ -307,7 +327,7 @@ export class ResultadosService {
 
     try {
       // 2. Intentar petición anónima (según especificación Labcore: RecuperarDocumento es anónimo)
-      let resp = await fetch(urlCompleta);
+      let resp = await fetch(urlCompleta, { signal: AbortSignal.timeout(this.timeoutMs) });
 
       // 3. Fallback a petición con autenticación
       if (!resp.ok) {
@@ -321,7 +341,7 @@ export class ResultadosService {
           };
           if (cookie) headers['Cookie'] = cookie;
 
-          resp = await fetch(urlCompleta, { headers });
+          resp = await fetch(urlCompleta, { headers, signal: AbortSignal.timeout(this.timeoutMs) });
         } catch (authErr: any) {
           this.logger.warn(`No fue posible reautenticar para el PDF: ${authErr.message}`);
         }

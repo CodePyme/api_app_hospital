@@ -29,14 +29,32 @@ let ResultadosService = class ResultadosService {
         this.configService = configService;
     }
     get baseApiUrl() {
-        return (this.configService.get('LABCORE_API_URL') ||
-            'http://172.28.64.81:8180/APIIntegracion/Integration.svc').replace(/\/+$/, '');
+        const url = this.configService.get('LABCORE_API_URL');
+        if (!url) {
+            this.logger.error('❌ La variable LABCORE_API_URL no está configurada en el archivo .env');
+            throw new common_1.BadRequestException('El servicio de laboratorios no está configurado (LABCORE_API_URL faltante en .env).');
+        }
+        return url.trim().replace(/\/+$/, '');
     }
     get login() {
-        return this.configService.get('LABCORE_LOGIN') || 'QXBpSW50ZWdyYWNpb24=';
+        const login = this.configService.get('LABCORE_LOGIN');
+        if (!login) {
+            this.logger.error('❌ La variable LABCORE_LOGIN no está configurada en el archivo .env');
+            throw new common_1.BadRequestException('Credenciales de laboratorios no configuradas (LABCORE_LOGIN faltante en .env).');
+        }
+        return login.trim();
     }
     get password() {
-        return this.configService.get('LABCORE_PASSWORD') || 'QXBpSW50ZWdyYWNpb24=';
+        const pass = this.configService.get('LABCORE_PASSWORD');
+        if (!pass) {
+            this.logger.error('❌ La variable LABCORE_PASSWORD no está configurada en el archivo .env');
+            throw new common_1.BadRequestException('Credenciales de laboratorios no configuradas (LABCORE_PASSWORD faltante en .env).');
+        }
+        return pass.trim();
+    }
+    get timeoutMs() {
+        const val = this.configService.get('LABCORE_TIMEOUT_MS');
+        return val ? parseInt(String(val), 10) : 10000;
     }
     async autenticar() {
         const ahora = Date.now();
@@ -58,6 +76,7 @@ let ResultadosService = class ResultadosService {
                     Login: this.login,
                     Password: this.password,
                 }),
+                signal: AbortSignal.timeout(this.timeoutMs),
             });
             if (!resp.ok) {
                 const errorText = await resp.text().catch(() => '');
@@ -157,6 +176,7 @@ let ResultadosService = class ResultadosService {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(bodyPeticion),
+                signal: AbortSignal.timeout(this.timeoutMs),
             });
             if (!resp.ok) {
                 const errorText = await resp.text().catch(() => '');
@@ -200,6 +220,7 @@ let ResultadosService = class ResultadosService {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(bodyPeticion),
+                signal: AbortSignal.timeout(this.timeoutMs),
             });
             const responseText = await resp.text().catch(() => '');
             let datos = null;
@@ -258,7 +279,7 @@ let ResultadosService = class ResultadosService {
             : `${this.baseApiUrl}${pdfUrlKey.startsWith('/') ? '' : '/'}${pdfUrlKey}`;
         this.logger.log(`📥 Proxying PDF desde ${urlCompleta}`);
         try {
-            let resp = await fetch(urlCompleta);
+            let resp = await fetch(urlCompleta, { signal: AbortSignal.timeout(this.timeoutMs) });
             if (!resp.ok) {
                 const errorAnon = await resp.clone().text().catch(() => '');
                 this.logger.warn(`⚠️ Petición anónima a PDF retornó ${resp.status}: ${errorAnon}. Reintentando con autenticación...`);
@@ -269,7 +290,7 @@ let ResultadosService = class ResultadosService {
                     };
                     if (cookie)
                         headers['Cookie'] = cookie;
-                    resp = await fetch(urlCompleta, { headers });
+                    resp = await fetch(urlCompleta, { headers, signal: AbortSignal.timeout(this.timeoutMs) });
                 }
                 catch (authErr) {
                     this.logger.warn(`No fue posible reautenticar para el PDF: ${authErr.message}`);
