@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class SolicitarOtpDto {
   @IsNotEmpty({ message: 'El tipo de documento es requerido' })
@@ -12,4 +12,8 @@ export class SolicitarOtpDto {
   @IsNotEmpty({ message: 'La fecha de nacimiento es requerida' })
   @IsString({ message: 'La fecha de nacimiento debe ser una fecha válida' })
   fechaNacimiento: string;
+
+  @IsOptional()
+  @IsBoolean({ message: 'La aceptación de tratamiento de datos debe ser un valor booleano' })
+  aceptaTratamientoDatos?: boolean;
 }

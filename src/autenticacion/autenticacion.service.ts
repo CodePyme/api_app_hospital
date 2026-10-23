@@ -61,8 +61,15 @@ export class AutenticacionService {
   async solicitarOtp(
     solicitarOtpDto: SolicitarOtpDto,
   ): Promise<RespuestaApi<{ correoDestino?: string; correoEnmascarado: string; telefonoEnmascarado: string | null; expiraEn: Date }>> {
-    const { tipoDocumento, numeroDocumento, fechaNacimiento } = solicitarOtpDto;
+    const { tipoDocumento, numeroDocumento, fechaNacimiento, aceptaTratamientoDatos } = solicitarOtpDto;
     const numeroDocLimpio = String(numeroDocumento).trim();
+
+    // Validación de autorización de tratamiento de datos personales
+    if (aceptaTratamientoDatos === false) {
+      throw new BadRequestException(
+        'Debes autorizar el tratamiento de datos personales para continuar y recibir la clave dinámica.',
+      );
+    }
 
     let datosDemograficos: any = null;
 
@@ -181,7 +188,11 @@ export class AutenticacionService {
       codigo: codigoOtp,
       correo: correoFinal,
       telefono: datosDemograficos.telefono || null,
-      datosPaciente: datosDemograficos,
+      datosPaciente: {
+        ...datosDemograficos,
+        aceptaTratamientoDatos: true,
+        fechaAceptacionTratamientoDatos: new Date().toISOString(),
+      },
       intentos: 0,
       maxIntentos: this.MAX_INTENTOS_OTP,
       expiraEn,
@@ -216,9 +227,9 @@ export class AutenticacionService {
 
     return {
       exito: true,
-      mensaje: `Se ha enviado una clave dinámica de 4 dígitos a ${correoFinal}`,
+      mensaje: `Se ha enviado una clave dinámica de 4 dígitos a ${correoEnmascarado}`,
       datos: {
-        correoDestino: correoFinal,
+        correoDestino: correoEnmascarado,
         correoEnmascarado,
         telefonoEnmascarado,
         expiraEn,
@@ -472,22 +483,49 @@ export class AutenticacionService {
   }
 
   private enmascararCorreo(correo: string): string {
-    const partes = correo.split('@');
-    if (partes.length !== 2) return correo;
-    const [nombre, dominio] = partes;
+    if (!correo || !correo.includes('@')) return '******';
+    const partes = correo.trim().split('@');
+    if (partes.length !== 2) return '******';
+
+    const [nombre, dominioCompleto] = partes;
+
+    // Enmascarar nombre (ej: "johndoe" -> "jo************")
+    let nombreEnmascarado = '';
     if (nombre.length <= 2) {
-      return `${nombre[0]}*@${dominio}`;
+      nombreEnmascarado = `${nombre[0] || '*'}${ '*'.repeat(10) }`;
+    } else {
+      const parteVisible = nombre.slice(0, 2);
+      const asteriscos = '*'.repeat(Math.max(10, nombre.length));
+      nombreEnmascarado = `${parteVisible}${asteriscos}`;
     }
-    const visibleInicio = nombre.slice(0, 2);
-    const visibleFin = nombre.slice(-1);
-    const asteriscos = '*'.repeat(Math.max(2, nombre.length - 3));
-    return `${visibleInicio}${asteriscos}${visibleFin}@${dominio}`;
+
+    // Enmascarar dominio (ej: "sanvicentefundacion.com" -> "sanvicen****.com")
+    const partesDominio = dominioCompleto.split('.');
+    if (partesDominio.length >= 2) {
+      const extension = partesDominio.slice(1).join('.');
+      const nombreDominio = partesDominio[0];
+      let domVisible = '';
+      if (nombreDominio.length <= 3) {
+        domVisible = `${nombreDominio.slice(0, 1)}****`;
+      } else if (nombreDominio.length <= 6) {
+        domVisible = `${nombreDominio.slice(0, 2)}****`;
+      } else {
+        const numVisibles = Math.min(8, Math.max(3, Math.floor(nombreDominio.length * 0.6)));
+        domVisible = `${nombreDominio.slice(0, numVisibles)}****`;
+      }
+      return `${nombreEnmascarado}@${domVisible}.${extension}`;
+    }
+
+    return `${nombreEnmascarado}@****`;
   }
 
   private enmascararTelefono(telefono: string): string {
+    if (!telefono) return '';
     const limpio = telefono.replace(/\D/g, '');
-    if (limpio.length <= 4) return telefono;
-    const ultimosCuatro = limpio.slice(-4);
-    return `*** *** ${ultimosCuatro}`;
+    if (limpio.length <= 3) return '*********';
+    const primerDigito = limpio.slice(0, 1);
+    const ultimosDos = limpio.slice(-2);
+    const asteriscos = '*'.repeat(Math.max(9, limpio.length - 3));
+    return `${primerDigito}${asteriscos}${ultimosDos}`;
   }
 }

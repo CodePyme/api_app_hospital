@@ -14,6 +14,29 @@ export interface FiltroLabcore {
 export class ResultadosService {
   private readonly logger = new Logger(ResultadosService.name);
 
+  public static readonly MENSAJE_CONFIDENCIAL =
+    'EL RESULTADO ESTÁ LISTO PERO DEBE RECLAMARSE DE FORMA PRESENCIAL EN LA INSTITUCIÓN';
+
+  private static readonly PATRONES_CONFIDENCIALES: RegExp[] = [
+    /\b(vih|hiv)\b/i,
+    /inmunodeficiencia\s+humana/i,
+    /carga\s+viral.*(vih|hiv)/i,
+    /western\s+blot/i,
+    /tuberculosis/i,
+    /\btbc\b/i,
+    /\bbk\b/i,
+    /baciloscop/i,
+    /mycobacterium/i,
+    /hepatitis/i,
+    /\b(hbsag|anti-hcv|anti-vhc|vhb|vhc)\b/i,
+    /\b(sifilis|sífilis|treponema|vdrl|rpr)\b/i,
+  ];
+
+  public static esConfidencial(texto: string): boolean {
+    if (!texto) return false;
+    return ResultadosService.PATRONES_CONFIDENCIALES.some((reg) => reg.test(texto));
+  }
+
   // Caché de token estático de clase para reutilizar en peticiones
   private static tokenCache: { authKey: string; cookie: string; expiraEn: number } | null = null;
 
@@ -209,11 +232,24 @@ export class ResultadosService {
       }
 
       const datos = await resp.json();
+      const ordenesProcesadas = (datos?.Orders || []).map((ord: any) => {
+        const estudios = ord.Studies || [];
+        const esConfidencial = estudios.some(
+          (est: any) =>
+            ResultadosService.esConfidencial(est.StudyName) ||
+            ResultadosService.esConfidencial(est.Code),
+        );
+        return {
+          ...ord,
+          EsConfidencial: esConfidencial,
+        };
+      });
+
       return {
         exito: true,
         mensaje: 'Órdenes de laboratorio obtenidas correctamente',
-        datos: datos?.Orders || [],
-        totalRegistros: datos?.TotalRecords || (datos?.Orders ? datos.Orders.length : 0),
+        datos: ordenesProcesadas,
+        totalRegistros: datos?.TotalRecords || ordenesProcesadas.length,
         status: datos?.Status || {},
       };
     } catch (err: any) {
@@ -268,6 +304,53 @@ export class ResultadosService {
         this.logger.log(`📑 [PDF BASE64 OFICIAL DE LABCORE RECIBIDO]: EsBase64: ${esBase64} | Longitud: ${detalle.ResultPdf.length}`);
       }
 
+      // Evaluar confidencialidad de la orden o sus analitos (VIH, tuberculosis, hepatitis, etc.)
+      if (detalle) {
+        let esConfidencial = false;
+        if (Array.isArray(detalle.Studies)) {
+          for (const estudio of detalle.Studies) {
+            if (ResultadosService.esConfidencial(estudio.StudyName)) {
+              esConfidencial = true;
+              break;
+            }
+            if (Array.isArray(estudio.Analytes)) {
+              for (const ana of estudio.Analytes) {
+                if (
+                  ResultadosService.esConfidencial(ana.AnalyteName) ||
+                  ResultadosService.esConfidencial(ana.Method)
+                ) {
+                  esConfidencial = true;
+                  break;
+                }
+              }
+            }
+            if (esConfidencial) break;
+          }
+        }
+
+        if (esConfidencial) {
+          detalle.EsConfidencial = true;
+          detalle.MensajeConfidencial = ResultadosService.MENSAJE_CONFIDENCIAL;
+          detalle.ResultPdf = null; // Suprimir descarga de PDF en línea
+
+          // Ocultar valores detallados de analitos para evitar exposición
+          if (Array.isArray(detalle.Studies)) {
+            detalle.Studies.forEach((estudio: any) => {
+              estudio.EsConfidencial = true;
+              if (Array.isArray(estudio.Analytes)) {
+                estudio.Analytes.forEach((ana: any) => {
+                  ana.Result = '';
+                  ana.ResultInterpretation = '';
+                  ana.TextualReference = '';
+                  ana.ReferencesRanges = null;
+                  ana.EsConfidencial = true;
+                });
+              }
+            });
+          }
+        }
+      }
+
       // Si Labcore entregó el objeto Orders con los analitos
       if (detalle || (datos && datos.Status?.Success === true)) {
         if (detalle && detalle.ResultPdf) {
@@ -292,6 +375,7 @@ export class ResultadosService {
         status: datos?.Status || {},
       };
     } catch (err: any) {
+      if (err instanceof BadRequestException) throw err;
       this.logger.error(`❌ Excepción al obtener detalle de la orden: ${err.message}`);
       throw new BadRequestException(`Error al consultar el detalle en Labcore: ${err.message}`);
     }
@@ -303,6 +387,10 @@ export class ResultadosService {
   async proxyPdf(pdfUrlKey: string, res: Response) {
     if (!pdfUrlKey) {
       throw new BadRequestException('La ruta del documento PDF no es válida.');
+    }
+
+    if (ResultadosService.esConfidencial(pdfUrlKey)) {
+      throw new BadRequestException(ResultadosService.MENSAJE_CONFIDENCIAL);
     }
 
     // 1. Si pdfUrlKey ya es un string Base64 del PDF (comienza con JVBERi o data:application/pdf)

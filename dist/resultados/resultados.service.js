@@ -23,6 +23,26 @@ let ResultadosService = class ResultadosService {
     request;
     configService;
     logger = new common_1.Logger(ResultadosService_1.name);
+    static MENSAJE_CONFIDENCIAL = 'EL RESULTADO ESTÁ LISTO PERO DEBE RECLAMARSE DE FORMA PRESENCIAL EN LA INSTITUCIÓN';
+    static PATRONES_CONFIDENCIALES = [
+        /\b(vih|hiv)\b/i,
+        /inmunodeficiencia\s+humana/i,
+        /carga\s+viral.*(vih|hiv)/i,
+        /western\s+blot/i,
+        /tuberculosis/i,
+        /\btbc\b/i,
+        /\bbk\b/i,
+        /baciloscop/i,
+        /mycobacterium/i,
+        /hepatitis/i,
+        /\b(hbsag|anti-hcv|anti-vhc|vhb|vhc)\b/i,
+        /\b(sifilis|sífilis|treponema|vdrl|rpr)\b/i,
+    ];
+    static esConfidencial(texto) {
+        if (!texto)
+            return false;
+        return ResultadosService_1.PATRONES_CONFIDENCIALES.some((reg) => reg.test(texto));
+    }
     static tokenCache = null;
     constructor(request, configService) {
         this.request = request;
@@ -184,11 +204,20 @@ let ResultadosService = class ResultadosService {
                 throw new common_1.BadRequestException(`Error al consultar órdenes de laboratorio (HTTP ${resp.status})`);
             }
             const datos = await resp.json();
+            const ordenesProcesadas = (datos?.Orders || []).map((ord) => {
+                const estudios = ord.Studies || [];
+                const esConfidencial = estudios.some((est) => ResultadosService_1.esConfidencial(est.StudyName) ||
+                    ResultadosService_1.esConfidencial(est.Code));
+                return {
+                    ...ord,
+                    EsConfidencial: esConfidencial,
+                };
+            });
             return {
                 exito: true,
                 mensaje: 'Órdenes de laboratorio obtenidas correctamente',
-                datos: datos?.Orders || [],
-                totalRegistros: datos?.TotalRecords || (datos?.Orders ? datos.Orders.length : 0),
+                datos: ordenesProcesadas,
+                totalRegistros: datos?.TotalRecords || ordenesProcesadas.length,
                 status: datos?.Status || {},
             };
         }
@@ -234,6 +263,47 @@ let ResultadosService = class ResultadosService {
                 const esBase64 = detalle.ResultPdf.startsWith('JVBERi') || detalle.ResultPdf.length > 200;
                 this.logger.log(`📑 [PDF BASE64 OFICIAL DE LABCORE RECIBIDO]: EsBase64: ${esBase64} | Longitud: ${detalle.ResultPdf.length}`);
             }
+            if (detalle) {
+                let esConfidencial = false;
+                if (Array.isArray(detalle.Studies)) {
+                    for (const estudio of detalle.Studies) {
+                        if (ResultadosService_1.esConfidencial(estudio.StudyName)) {
+                            esConfidencial = true;
+                            break;
+                        }
+                        if (Array.isArray(estudio.Analytes)) {
+                            for (const ana of estudio.Analytes) {
+                                if (ResultadosService_1.esConfidencial(ana.AnalyteName) ||
+                                    ResultadosService_1.esConfidencial(ana.Method)) {
+                                    esConfidencial = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (esConfidencial)
+                            break;
+                    }
+                }
+                if (esConfidencial) {
+                    detalle.EsConfidencial = true;
+                    detalle.MensajeConfidencial = ResultadosService_1.MENSAJE_CONFIDENCIAL;
+                    detalle.ResultPdf = null;
+                    if (Array.isArray(detalle.Studies)) {
+                        detalle.Studies.forEach((estudio) => {
+                            estudio.EsConfidencial = true;
+                            if (Array.isArray(estudio.Analytes)) {
+                                estudio.Analytes.forEach((ana) => {
+                                    ana.Result = '';
+                                    ana.ResultInterpretation = '';
+                                    ana.TextualReference = '';
+                                    ana.ReferencesRanges = null;
+                                    ana.EsConfidencial = true;
+                                });
+                            }
+                        });
+                    }
+                }
+            }
             if (detalle || (datos && datos.Status?.Success === true)) {
                 if (detalle && detalle.ResultPdf) {
                     if (detalle.ResultPdf.includes('id=0') || detalle.ResultPdf.endsWith('urlKey=')) {
@@ -256,6 +326,8 @@ let ResultadosService = class ResultadosService {
             };
         }
         catch (err) {
+            if (err instanceof common_1.BadRequestException)
+                throw err;
             this.logger.error(`❌ Excepción al obtener detalle de la orden: ${err.message}`);
             throw new common_1.BadRequestException(`Error al consultar el detalle en Labcore: ${err.message}`);
         }
@@ -263,6 +335,9 @@ let ResultadosService = class ResultadosService {
     async proxyPdf(pdfUrlKey, res) {
         if (!pdfUrlKey) {
             throw new common_1.BadRequestException('La ruta del documento PDF no es válida.');
+        }
+        if (ResultadosService_1.esConfidencial(pdfUrlKey)) {
+            throw new common_1.BadRequestException(ResultadosService_1.MENSAJE_CONFIDENCIAL);
         }
         if (pdfUrlKey.startsWith('data:application/pdf') ||
             pdfUrlKey.startsWith('JVBERi') ||
