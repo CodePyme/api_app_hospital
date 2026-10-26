@@ -23,20 +23,58 @@ let ResultadosService = class ResultadosService {
     request;
     configService;
     logger = new common_1.Logger(ResultadosService_1.name);
+    static MENSAJE_CONFIDENCIAL = 'EL RESULTADO ESTÁ LISTO PERO DEBE RECLAMARSE DE FORMA PRESENCIAL EN LA INSTITUCIÓN';
+    static PATRONES_CONFIDENCIALES = [
+        /\b(vih|hiv)\b/i,
+        /inmunodeficiencia\s+humana/i,
+        /carga\s+viral.*(vih|hiv)/i,
+        /western\s+blot/i,
+        /tuberculosis/i,
+        /\btbc\b/i,
+        /\bbk\b/i,
+        /baciloscop/i,
+        /mycobacterium/i,
+        /hepatitis/i,
+        /\b(hbsag|anti-hcv|anti-vhc|vhb|vhc)\b/i,
+        /\b(sifilis|sífilis|treponema|vdrl|rpr)\b/i,
+    ];
+    static esConfidencial(texto) {
+        if (!texto)
+            return false;
+        return ResultadosService_1.PATRONES_CONFIDENCIALES.some((reg) => reg.test(texto));
+    }
     static tokenCache = null;
     constructor(request, configService) {
         this.request = request;
         this.configService = configService;
     }
     get baseApiUrl() {
-        return (this.configService.get('LABCORE_API_URL') ||
-            'http://172.28.64.81:8180/APIIntegracion/Integration.svc').replace(/\/+$/, '');
+        const url = this.configService.get('LABCORE_API_URL');
+        if (!url) {
+            this.logger.error('❌ La variable LABCORE_API_URL no está configurada en el archivo .env');
+            throw new common_1.BadRequestException('El servicio de laboratorios no está configurado (LABCORE_API_URL faltante en .env).');
+        }
+        return url.trim().replace(/\/+$/, '');
     }
     get login() {
-        return this.configService.get('LABCORE_LOGIN') || 'QXBpSW50ZWdyYWNpb24=';
+        const login = this.configService.get('LABCORE_LOGIN');
+        if (!login) {
+            this.logger.error('❌ La variable LABCORE_LOGIN no está configurada en el archivo .env');
+            throw new common_1.BadRequestException('Credenciales de laboratorios no configuradas (LABCORE_LOGIN faltante en .env).');
+        }
+        return login.trim();
     }
     get password() {
-        return this.configService.get('LABCORE_PASSWORD') || 'QXBpSW50ZWdyYWNpb24=';
+        const pass = this.configService.get('LABCORE_PASSWORD');
+        if (!pass) {
+            this.logger.error('❌ La variable LABCORE_PASSWORD no está configurada en el archivo .env');
+            throw new common_1.BadRequestException('Credenciales de laboratorios no configuradas (LABCORE_PASSWORD faltante en .env).');
+        }
+        return pass.trim();
+    }
+    get timeoutMs() {
+        const val = this.configService.get('LABCORE_TIMEOUT_MS');
+        return val ? parseInt(String(val), 10) : 10000;
     }
     async autenticar() {
         const ahora = Date.now();
@@ -58,6 +96,7 @@ let ResultadosService = class ResultadosService {
                     Login: this.login,
                     Password: this.password,
                 }),
+                signal: AbortSignal.timeout(this.timeoutMs),
             });
             if (!resp.ok) {
                 const errorText = await resp.text().catch(() => '');
@@ -157,6 +196,7 @@ let ResultadosService = class ResultadosService {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(bodyPeticion),
+                signal: AbortSignal.timeout(this.timeoutMs),
             });
             if (!resp.ok) {
                 const errorText = await resp.text().catch(() => '');
@@ -164,11 +204,20 @@ let ResultadosService = class ResultadosService {
                 throw new common_1.BadRequestException(`Error al consultar órdenes de laboratorio (HTTP ${resp.status})`);
             }
             const datos = await resp.json();
+            const ordenesProcesadas = (datos?.Orders || []).map((ord) => {
+                const estudios = ord.Studies || [];
+                const esConfidencial = estudios.some((est) => ResultadosService_1.esConfidencial(est.StudyName) ||
+                    ResultadosService_1.esConfidencial(est.Code));
+                return {
+                    ...ord,
+                    EsConfidencial: esConfidencial,
+                };
+            });
             return {
                 exito: true,
                 mensaje: 'Órdenes de laboratorio obtenidas correctamente',
-                datos: datos?.Orders || [],
-                totalRegistros: datos?.TotalRecords || (datos?.Orders ? datos.Orders.length : 0),
+                datos: ordenesProcesadas,
+                totalRegistros: datos?.TotalRecords || ordenesProcesadas.length,
                 status: datos?.Status || {},
             };
         }
@@ -200,6 +249,7 @@ let ResultadosService = class ResultadosService {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(bodyPeticion),
+                signal: AbortSignal.timeout(this.timeoutMs),
             });
             const responseText = await resp.text().catch(() => '');
             let datos = null;
@@ -212,6 +262,47 @@ let ResultadosService = class ResultadosService {
             if (detalle?.ResultPdf) {
                 const esBase64 = detalle.ResultPdf.startsWith('JVBERi') || detalle.ResultPdf.length > 200;
                 this.logger.log(`📑 [PDF BASE64 OFICIAL DE LABCORE RECIBIDO]: EsBase64: ${esBase64} | Longitud: ${detalle.ResultPdf.length}`);
+            }
+            if (detalle) {
+                let esConfidencial = false;
+                if (Array.isArray(detalle.Studies)) {
+                    for (const estudio of detalle.Studies) {
+                        if (ResultadosService_1.esConfidencial(estudio.StudyName)) {
+                            esConfidencial = true;
+                            break;
+                        }
+                        if (Array.isArray(estudio.Analytes)) {
+                            for (const ana of estudio.Analytes) {
+                                if (ResultadosService_1.esConfidencial(ana.AnalyteName) ||
+                                    ResultadosService_1.esConfidencial(ana.Method)) {
+                                    esConfidencial = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (esConfidencial)
+                            break;
+                    }
+                }
+                if (esConfidencial) {
+                    detalle.EsConfidencial = true;
+                    detalle.MensajeConfidencial = ResultadosService_1.MENSAJE_CONFIDENCIAL;
+                    detalle.ResultPdf = null;
+                    if (Array.isArray(detalle.Studies)) {
+                        detalle.Studies.forEach((estudio) => {
+                            estudio.EsConfidencial = true;
+                            if (Array.isArray(estudio.Analytes)) {
+                                estudio.Analytes.forEach((ana) => {
+                                    ana.Result = '';
+                                    ana.ResultInterpretation = '';
+                                    ana.TextualReference = '';
+                                    ana.ReferencesRanges = null;
+                                    ana.EsConfidencial = true;
+                                });
+                            }
+                        });
+                    }
+                }
             }
             if (detalle || (datos && datos.Status?.Success === true)) {
                 if (detalle && detalle.ResultPdf) {
@@ -235,6 +326,8 @@ let ResultadosService = class ResultadosService {
             };
         }
         catch (err) {
+            if (err instanceof common_1.BadRequestException)
+                throw err;
             this.logger.error(`❌ Excepción al obtener detalle de la orden: ${err.message}`);
             throw new common_1.BadRequestException(`Error al consultar el detalle en Labcore: ${err.message}`);
         }
@@ -242,6 +335,9 @@ let ResultadosService = class ResultadosService {
     async proxyPdf(pdfUrlKey, res) {
         if (!pdfUrlKey) {
             throw new common_1.BadRequestException('La ruta del documento PDF no es válida.');
+        }
+        if (ResultadosService_1.esConfidencial(pdfUrlKey)) {
+            throw new common_1.BadRequestException(ResultadosService_1.MENSAJE_CONFIDENCIAL);
         }
         if (pdfUrlKey.startsWith('data:application/pdf') ||
             pdfUrlKey.startsWith('JVBERi') ||
@@ -258,7 +354,7 @@ let ResultadosService = class ResultadosService {
             : `${this.baseApiUrl}${pdfUrlKey.startsWith('/') ? '' : '/'}${pdfUrlKey}`;
         this.logger.log(`📥 Proxying PDF desde ${urlCompleta}`);
         try {
-            let resp = await fetch(urlCompleta);
+            let resp = await fetch(urlCompleta, { signal: AbortSignal.timeout(this.timeoutMs) });
             if (!resp.ok) {
                 const errorAnon = await resp.clone().text().catch(() => '');
                 this.logger.warn(`⚠️ Petición anónima a PDF retornó ${resp.status}: ${errorAnon}. Reintentando con autenticación...`);
@@ -269,7 +365,7 @@ let ResultadosService = class ResultadosService {
                     };
                     if (cookie)
                         headers['Cookie'] = cookie;
-                    resp = await fetch(urlCompleta, { headers });
+                    resp = await fetch(urlCompleta, { headers, signal: AbortSignal.timeout(this.timeoutMs) });
                 }
                 catch (authErr) {
                     this.logger.warn(`No fue posible reautenticar para el PDF: ${authErr.message}`);

@@ -85,8 +85,11 @@ let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
         return this.request.tenantConexion.getRepository(paciente_entity_1.Paciente);
     }
     async solicitarOtp(solicitarOtpDto) {
-        const { tipoDocumento, numeroDocumento, fechaNacimiento } = solicitarOtpDto;
+        const { tipoDocumento, numeroDocumento, fechaNacimiento, aceptaTratamientoDatos } = solicitarOtpDto;
         const numeroDocLimpio = String(numeroDocumento).trim();
+        if (aceptaTratamientoDatos === false) {
+            throw new common_1.BadRequestException('Debes autorizar el tratamiento de datos personales para continuar y recibir la clave dinámica.');
+        }
         let datosDemograficos = null;
         if (numeroDocLimpio === '123456789') {
             const fechaIngresada = (fechaNacimiento || '').trim();
@@ -172,7 +175,11 @@ let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
             codigo: codigoOtp,
             correo: correoFinal,
             telefono: datosDemograficos.telefono || null,
-            datosPaciente: datosDemograficos,
+            datosPaciente: {
+                ...datosDemograficos,
+                aceptaTratamientoDatos: true,
+                fechaAceptacionTratamientoDatos: new Date().toISOString(),
+            },
             intentos: 0,
             maxIntentos: this.MAX_INTENTOS_OTP,
             expiraEn,
@@ -201,9 +208,9 @@ let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
             : null;
         return {
             exito: true,
-            mensaje: `Se ha enviado una clave dinámica de 4 dígitos a ${correoFinal}`,
+            mensaje: `Se ha enviado una clave dinámica de 4 dígitos a ${correoEnmascarado}`,
             datos: {
-                correoDestino: correoFinal,
+                correoDestino: correoEnmascarado,
                 correoEnmascarado,
                 telefonoEnmascarado,
                 expiraEn,
@@ -389,24 +396,50 @@ let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
         };
     }
     enmascararCorreo(correo) {
-        const partes = correo.split('@');
+        if (!correo || !correo.includes('@'))
+            return '******';
+        const partes = correo.trim().split('@');
         if (partes.length !== 2)
-            return correo;
-        const [nombre, dominio] = partes;
+            return '******';
+        const [nombre, dominioCompleto] = partes;
+        let nombreEnmascarado = '';
         if (nombre.length <= 2) {
-            return `${nombre[0]}*@${dominio}`;
+            nombreEnmascarado = `${nombre[0] || '*'}${'*'.repeat(10)}`;
         }
-        const visibleInicio = nombre.slice(0, 2);
-        const visibleFin = nombre.slice(-1);
-        const asteriscos = '*'.repeat(Math.max(2, nombre.length - 3));
-        return `${visibleInicio}${asteriscos}${visibleFin}@${dominio}`;
+        else {
+            const parteVisible = nombre.slice(0, 2);
+            const asteriscos = '*'.repeat(Math.max(10, nombre.length));
+            nombreEnmascarado = `${parteVisible}${asteriscos}`;
+        }
+        const partesDominio = dominioCompleto.split('.');
+        if (partesDominio.length >= 2) {
+            const extension = partesDominio.slice(1).join('.');
+            const nombreDominio = partesDominio[0];
+            let domVisible = '';
+            if (nombreDominio.length <= 3) {
+                domVisible = `${nombreDominio.slice(0, 1)}****`;
+            }
+            else if (nombreDominio.length <= 6) {
+                domVisible = `${nombreDominio.slice(0, 2)}****`;
+            }
+            else {
+                const numVisibles = Math.min(8, Math.max(3, Math.floor(nombreDominio.length * 0.6)));
+                domVisible = `${nombreDominio.slice(0, numVisibles)}****`;
+            }
+            return `${nombreEnmascarado}@${domVisible}.${extension}`;
+        }
+        return `${nombreEnmascarado}@****`;
     }
     enmascararTelefono(telefono) {
+        if (!telefono)
+            return '';
         const limpio = telefono.replace(/\D/g, '');
-        if (limpio.length <= 4)
-            return telefono;
-        const ultimosCuatro = limpio.slice(-4);
-        return `*** *** ${ultimosCuatro}`;
+        if (limpio.length <= 3)
+            return '*********';
+        const primerDigito = limpio.slice(0, 1);
+        const ultimosDos = limpio.slice(-2);
+        const asteriscos = '*'.repeat(Math.max(9, limpio.length - 3));
+        return `${primerDigito}${asteriscos}${ultimosDos}`;
     }
 };
 exports.AutenticacionService = AutenticacionService;

@@ -9,11 +9,15 @@ export declare class ResultadosService {
     private readonly request;
     private readonly configService;
     private readonly logger;
+    static readonly MENSAJE_CONFIDENCIAL = "EL RESULTADO EST\u00C1 LISTO PERO DEBE RECLAMARSE DE FORMA PRESENCIAL EN LA INSTITUCI\u00D3N";
+    private static readonly PATRONES_CONFIDENCIALES;
+    static esConfidencial(texto: string): boolean;
     private static tokenCache;
     constructor(request: Request, configService: ConfigService);
     private get baseApiUrl();
     private get login();
     private get password();
+    private get timeoutMs();
     autenticar(): Promise<{
         authKey: string;
         cookie: string;

@@ -15,6 +15,7 @@ class SolicitarOtpDto {
     tipoDocumento;
     numeroDocumento;
     fechaNacimiento;
+    aceptaTratamientoDatos;
 }
 exports.SolicitarOtpDto = SolicitarOtpDto;
 __decorate([
@@ -32,4 +33,9 @@ __decorate([
     (0, class_validator_1.IsString)({ message: 'La fecha de nacimiento debe ser una fecha válida' }),
     __metadata("design:type", String)
 ], SolicitarOtpDto.prototype, "fechaNacimiento", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)({ message: 'La aceptación de tratamiento de datos debe ser un valor booleano' }),
+    __metadata("design:type", Boolean)
+], SolicitarOtpDto.prototype, "aceptaTratamientoDatos", void 0);
 //# sourceMappingURL=solicitar-otp.dto.js.map
