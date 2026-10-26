@@ -20,16 +20,20 @@ import { ResultadosModule } from './resultados/resultados.module';
       limit: 100, // máximo 100 peticiones por IP por minuto
     }]),
 
-    // Configuración de variables de entorno (disponible globalmente)
+    // Configuración de variables de entorno (disponible globalmente).
+    // Busca el .env en la carpeta de trabajo, y opcionalmente en una ruta extra
+    // vía ENV_FILE_PATH (variable del proceso, no del .env) para despliegues donde
+    // el working dir no coincide con la ubicación real del .env. En este servidor de
+    // Forge el .env vive en la raíz del sitio, no en el directorio de trabajo del
+    // proceso (current/), así que se mantiene esa ruta explícita como fallback.
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuracionBaseDeDatos],
-      // Busca el .env en la carpeta local, o en las rutas de Laravel Forge
       envFilePath: [
         '.env',
-        '../../.env',
-        '/home/forge/apiportalpacientesf.codepyme.io/.env'
-      ],
+        process.env.ENV_FILE_PATH,
+        '/home/forge/apiportalpacientesf.codepyme.io/.env',
+      ].filter((ruta): ruta is string => Boolean(ruta)),
     }),
 
     // Conexión a base de datos PostgreSQL

@@ -1,4 +1,5 @@
 import {
+  ClassSerializerInterceptor,
   Controller,
   Get,
   Post,
@@ -8,6 +9,7 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
@@ -20,6 +22,7 @@ import { SuperAdminGuard } from './guards/super-admin.guard';
 
 @Controller('tenants')
 @UseGuards(GuardJwtAutenticacion, SuperAdminGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class TenantController {
   constructor(private readonly tenantService: TenantService) {}
 

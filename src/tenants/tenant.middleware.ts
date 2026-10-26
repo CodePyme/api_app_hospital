@@ -31,8 +31,12 @@ export class TenantMiddleware implements NestMiddleware {
 
   async use(req: Request, res: Response, next: NextFunction): Promise<void> {
     // Resolver el dominio del tenant:
-    // 1. Header X-Tenant-Domain (para desarrollo/testing local)
-    // 2. Header Host (producción)
+    // 1. Header X-Tenant-Domain (siempre) — es la ÚNICA fuente confiable, porque el
+    //    frontend de cada tenant vive en un dominio distinto al de esta API
+    //    (ej. portalpacientesf.codepyme.io vs. apiportalpacientesf.codepyme.io).
+    //    El header Host de la petición HTTP siempre es el dominio de la API, nunca
+    //    el del tenant, así que NO sirve para diferenciar tenants en esta arquitectura.
+    // 2. Header Host, solo como último fallback (peticiones directas al dominio de la API).
     const dominioRaw =
       (req.headers['x-tenant-domain'] as string) ||
       (req.headers['host'] as string) ||
