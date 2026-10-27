@@ -15,7 +15,9 @@ const codigo_otp_entity_1 = require("../autenticacion/entities/codigo-otp.entity
 const paciente_entity_1 = require("../pacientes/entities/paciente.entity");
 const cita_entity_1 = require("../citas/entities/cita.entity");
 const auditoria_cancelacion_cita_entity_1 = require("../citas/entities/auditoria-cancelacion-cita.entity");
-const ENTIDADES_TENANT = [usuario_entity_1.Usuario, codigo_otp_entity_1.CodigoOtp, paciente_entity_1.Paciente, cita_entity_1.Cita, auditoria_cancelacion_cita_entity_1.AuditoriaCancelacionCita];
+const rol_entity_1 = require("../roles/entities/rol.entity");
+const permiso_entity_1 = require("../permisos/entities/permiso.entity");
+const ENTIDADES_TENANT = [usuario_entity_1.Usuario, codigo_otp_entity_1.CodigoOtp, paciente_entity_1.Paciente, cita_entity_1.Cita, auditoria_cancelacion_cita_entity_1.AuditoriaCancelacionCita, rol_entity_1.Rol, permiso_entity_1.Permiso];
 let TenantConnectionManager = TenantConnectionManager_1 = class TenantConnectionManager {
     logger = new common_1.Logger(TenantConnectionManager_1.name);
     conexiones = new Map();

@@ -28,8 +28,8 @@ let ResultadosController = class ResultadosController {
             clientCode,
         });
     }
-    async obtenerDetalleOrden(internalNumber, clientCode) {
-        return this.resultadosService.obtenerDetalleOrden(internalNumber, clientCode);
+    async obtenerDetalleOrden(req, internalNumber, clientCode) {
+        return this.resultadosService.obtenerDetalleOrden(internalNumber, clientCode, req.user);
     }
     async descargarPdf(pdfUrl, res) {
         return this.resultadosService.proxyPdf(pdfUrl, res);
@@ -50,13 +50,15 @@ __decorate([
 __decorate([
     (0, common_1.UseGuards)(jwt_autenticacion_guard_1.GuardJwtAutenticacion),
     (0, common_1.Post)('detalle'),
-    __param(0, (0, common_1.Body)('internalNumber')),
-    __param(1, (0, common_1.Body)('clientCode')),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)('internalNumber')),
+    __param(2, (0, common_1.Body)('clientCode')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", Promise)
 ], ResultadosController.prototype, "obtenerDetalleOrden", null);
 __decorate([
+    (0, common_1.UseGuards)(jwt_autenticacion_guard_1.GuardJwtAutenticacion),
     (0, common_1.Get)('pdf'),
     __param(0, (0, common_1.Query)('url')),
     __param(1, (0, common_1.Res)()),

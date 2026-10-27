@@ -228,9 +228,15 @@ let ResultadosService = class ResultadosService {
             throw new common_1.BadRequestException(`Error al conectar con Labcore: ${err.message}`);
         }
     }
-    async obtenerDetalleOrden(internalNumber, clientCode = '') {
+    async obtenerDetalleOrden(internalNumber, clientCode = '', usuario) {
         if (!internalNumber) {
             throw new common_1.BadRequestException('El identificador de la orden (InternalNumber) es requerido.');
+        }
+        if (usuario?.rol === 'paciente') {
+            const esPropia = await this.ordenPerteneceAlPaciente(internalNumber, usuario);
+            if (!esPropia) {
+                throw new common_1.ForbiddenException('La orden solicitada no pertenece al paciente autenticado.');
+            }
         }
         const headers = await this.obtenerHeadersPeticion();
         const url = `${this.baseApiUrl}/OrderDetail`;
@@ -352,6 +358,19 @@ let ResultadosService = class ResultadosService {
         const urlCompleta = pdfUrlKey.startsWith('http')
             ? pdfUrlKey
             : `${this.baseApiUrl}${pdfUrlKey.startsWith('/') ? '' : '/'}${pdfUrlKey}`;
+        let origenSolicitado;
+        let origenPermitido;
+        try {
+            origenSolicitado = new URL(urlCompleta).origin;
+            origenPermitido = new URL(this.baseApiUrl).origin;
+        }
+        catch {
+            throw new common_1.BadRequestException('La URL del documento no es válida.');
+        }
+        if (origenSolicitado !== origenPermitido) {
+            this.logger.warn(`🚫 Intento de proxy hacia un origen no autorizado: ${origenSolicitado}`);
+            throw new common_1.BadRequestException('La URL del documento no pertenece a un origen autorizado.');
+        }
         this.logger.log(`📥 Proxying PDF desde ${urlCompleta}`);
         try {
             let resp = await fetch(urlCompleta, { signal: AbortSignal.timeout(this.timeoutMs) });
@@ -387,6 +406,20 @@ let ResultadosService = class ResultadosService {
                 throw err;
             this.logger.error(`❌ Excepción al descargar PDF: ${err.message}`);
             throw new common_1.BadRequestException(`Error al obtener el archivo PDF: ${err.message}`);
+        }
+    }
+    async ordenPerteneceAlPaciente(internalNumber, usuario) {
+        try {
+            const respuesta = await this.obtenerOrdenesLaboratorio(usuario, { limite: 500 });
+            const ordenes = respuesta?.datos || [];
+            return ordenes.some((orden) => {
+                const clave = Object.keys(orden || {}).find((k) => k.toLowerCase() === 'internalnumber');
+                return clave ? String(orden[clave]) === String(internalNumber) : false;
+            });
+        }
+        catch (err) {
+            this.logger.warn(`No fue posible validar la propiedad de la orden ${internalNumber}: ${err.message}`);
+            return false;
         }
     }
 };

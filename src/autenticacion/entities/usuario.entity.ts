@@ -2,9 +2,15 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Rol } from '../../roles/entities/rol.entity';
+import { Permiso } from '../../permisos/entities/permiso.entity';
 
 export enum RolUsuario {
   ADMINISTRADOR = 'administrador',
@@ -32,6 +38,21 @@ export class Usuario {
 
   @Column({ name: 'rol', type: 'enum', enum: RolUsuario, default: RolUsuario.PACIENTE })
   rol: RolUsuario;
+
+  @Column({ name: 'rol_id', type: 'uuid', nullable: true })
+  rolId?: string | null;
+
+  @ManyToOne(() => Rol, (r) => r.usuarios, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'rol_id' })
+  rolEntidad?: Rol | null;
+
+  @ManyToMany(() => Permiso, (p) => p.usuarios, { cascade: false })
+  @JoinTable({
+    name: 'usuarios_permisos',
+    joinColumn: { name: 'usuario_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'permiso_id', referencedColumnName: 'id' },
+  })
+  permisosDirectos?: Permiso[];
 
   @Column({ name: 'activo', type: 'boolean', default: true })
   activo: boolean;

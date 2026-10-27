@@ -20,6 +20,9 @@ const database_module_1 = require("./database/database.module");
 const tenant_module_1 = require("./tenants/tenant.module");
 const tenant_middleware_1 = require("./tenants/tenant.middleware");
 const resultados_module_1 = require("./resultados/resultados.module");
+const permisos_module_1 = require("./permisos/permisos.module");
+const roles_module_1 = require("./roles/roles.module");
+const usuarios_module_1 = require("./usuarios/usuarios.module");
 let AppModule = class AppModule {
     configure(consumer) {
         consumer
@@ -40,9 +43,9 @@ exports.AppModule = AppModule = __decorate([
                 load: [base_de_datos_config_1.configuracionBaseDeDatos],
                 envFilePath: [
                     '.env',
-                    '../../.env',
-                    '/home/forge/apiportalpacientesf.codepyme.io/.env'
-                ],
+                    process.env.ENV_FILE_PATH,
+                    '/home/forge/apiportalpacientesf.codepyme.io/.env',
+                ].filter((ruta) => Boolean(ruta)),
             }),
             typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],
@@ -65,6 +68,9 @@ exports.AppModule = AppModule = __decorate([
             database_module_1.DatabaseModule,
             tenant_module_1.TenantModule,
             resultados_module_1.ResultadosModule,
+            permisos_module_1.PermisosModule,
+            roles_module_1.RolesModule,
+            usuarios_module_1.UsuariosModule,
         ],
         controllers: [],
         providers: [

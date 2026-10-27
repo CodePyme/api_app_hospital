@@ -11,13 +11,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegistrarUsuarioDto = void 0;
 const class_validator_1 = require("class-validator");
-const usuario_entity_1 = require("../entities/usuario.entity");
 class RegistrarUsuarioDto {
     nombres;
     apellidos;
     correoElectronico;
     contrasena;
-    rol;
 }
 exports.RegistrarUsuarioDto = RegistrarUsuarioDto;
 __decorate([
@@ -44,9 +42,4 @@ __decorate([
     (0, class_validator_1.MinLength)(8, { message: 'La contraseña debe tener al menos 8 caracteres' }),
     __metadata("design:type", String)
 ], RegistrarUsuarioDto.prototype, "contrasena", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsEnum)(usuario_entity_1.RolUsuario, { message: 'El rol del usuario no es válido' }),
-    __metadata("design:type", String)
-], RegistrarUsuarioDto.prototype, "rol", void 0);
 //# sourceMappingURL=registrar-usuario.dto.js.map

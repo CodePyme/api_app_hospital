@@ -58,6 +58,7 @@ const paciente_entity_1 = require("../pacientes/entities/paciente.entity");
 const config_1 = require("@nestjs/config");
 const correo_service_1 = require("./services/correo.service");
 const integracion_hospital_service_1 = require("./services/integracion-hospital.service");
+const permisos_utils_1 = require("../permisos/permisos.utils");
 let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
     request;
     servicioJwt;
@@ -91,74 +92,46 @@ let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
             throw new common_1.BadRequestException('Debes autorizar el tratamiento de datos personales para continuar y recibir la clave dinámica.');
         }
         let datosDemograficos = null;
-        if (numeroDocLimpio === '123456789') {
-            const fechaIngresada = (fechaNacimiento || '').trim();
-            const esFechaAdminValida = fechaIngresada.includes('1990') &&
-                (fechaIngresada.includes('07') || fechaIngresada.includes('7')) &&
-                (fechaIngresada.includes('01') || fechaIngresada.includes('1'));
-            if (!esFechaAdminValida) {
-                throw new common_1.BadRequestException('La fecha de nacimiento no coincide con la registrada para la cuenta de administrador.');
-            }
-            datosDemograficos = {
-                numeroPaciente: '0000000001',
-                nombres: 'Administrador',
-                apellidos: 'Principal',
-                nombreCompleto: 'Administrador Principal',
-                tipoDocumento: 'CC',
-                descDocumento: 'Céd.Ciudadanía',
-                numeroDocumento: '123456789',
-                fechaNacimiento: '1990-01-07',
-                edad: '36 años',
-                sexo: 'MASCULINO',
-                correoElectronico: 'cristian@codepyme.com',
-                telefono: '3042957517',
-                direccion: 'Sede Administrativa San Vicente Fundación',
-                ciudad: 'Medellín',
-                genero: 'masculino',
-            };
+        try {
+            datosDemograficos = await this.hospitalService.consultarDatosDemograficos({
+                tipoDocumento,
+                numeroDocumento,
+                fechaNacimiento,
+            });
         }
-        else {
-            try {
-                datosDemograficos = await this.hospitalService.consultarDatosDemograficos({
-                    tipoDocumento,
-                    numeroDocumento,
-                    fechaNacimiento,
-                });
-            }
-            catch (errApi) {
-                this.logger.warn(`⚠️ Error al consultar SAP PO para doc ${numeroDocLimpio}: ${errApi.message}. Intentando localización en BD local...`);
-                const pacienteLocal = await this.repositorioPaciente.findOne({
-                    where: { numeroDocumento: numeroDocLimpio },
-                });
-                if (pacienteLocal) {
-                    if (fechaNacimiento && pacienteLocal.fechaNacimiento) {
-                        const fechaIngresadaNorm = this.hospitalService.normalizarFecha(fechaNacimiento);
-                        const fechaBdNorm = this.hospitalService.normalizarFecha(pacienteLocal.fechaNacimiento.toISOString().slice(0, 10));
-                        if (fechaIngresadaNorm && fechaBdNorm && fechaIngresadaNorm !== fechaBdNorm) {
-                            throw new common_1.BadRequestException('La fecha de nacimiento ingresada no coincide con la registrada para este documento.');
-                        }
+        catch (errApi) {
+            this.logger.warn(`⚠️ Error al consultar SAP PO para doc ${numeroDocLimpio}: ${errApi.message}. Intentando localización en BD local...`);
+            const pacienteLocal = await this.repositorioPaciente.findOne({
+                where: { numeroDocumento: numeroDocLimpio },
+            });
+            if (pacienteLocal) {
+                if (fechaNacimiento && pacienteLocal.fechaNacimiento) {
+                    const fechaIngresadaNorm = this.hospitalService.normalizarFecha(fechaNacimiento);
+                    const fechaBdNorm = this.hospitalService.normalizarFecha(pacienteLocal.fechaNacimiento.toISOString().slice(0, 10));
+                    if (fechaIngresadaNorm && fechaBdNorm && fechaIngresadaNorm !== fechaBdNorm) {
+                        throw new common_1.BadRequestException('La fecha de nacimiento ingresada no coincide con la registrada para este documento.');
                     }
-                    datosDemograficos = {
-                        numeroPaciente: pacienteLocal.id,
-                        nombres: pacienteLocal.nombres,
-                        apellidos: pacienteLocal.apellidos,
-                        nombreCompleto: `${pacienteLocal.nombres} ${pacienteLocal.apellidos}`.trim(),
-                        tipoDocumento: pacienteLocal.tipoDocumento,
-                        numeroDocumento: pacienteLocal.numeroDocumento,
-                        fechaNacimiento: pacienteLocal.fechaNacimiento
-                            ? pacienteLocal.fechaNacimiento.toISOString().slice(0, 10)
-                            : fechaNacimiento,
-                        correoElectronico: pacienteLocal.correoElectronico,
-                        telefono: pacienteLocal.telefono,
-                        direccion: pacienteLocal.direccion,
-                        ciudad: pacienteLocal.ciudad,
-                        genero: pacienteLocal.genero,
-                    };
-                    this.logger.log(`✅ Paciente localizado en BD local para generación de OTP: ${pacienteLocal.correoElectronico}`);
                 }
-                else {
-                    throw errApi;
-                }
+                datosDemograficos = {
+                    numeroPaciente: pacienteLocal.id,
+                    nombres: pacienteLocal.nombres,
+                    apellidos: pacienteLocal.apellidos,
+                    nombreCompleto: `${pacienteLocal.nombres} ${pacienteLocal.apellidos}`.trim(),
+                    tipoDocumento: pacienteLocal.tipoDocumento,
+                    numeroDocumento: pacienteLocal.numeroDocumento,
+                    fechaNacimiento: pacienteLocal.fechaNacimiento
+                        ? pacienteLocal.fechaNacimiento.toISOString().slice(0, 10)
+                        : fechaNacimiento,
+                    correoElectronico: pacienteLocal.correoElectronico,
+                    telefono: pacienteLocal.telefono,
+                    direccion: pacienteLocal.direccion,
+                    ciudad: pacienteLocal.ciudad,
+                    genero: pacienteLocal.genero,
+                };
+                this.logger.log(`✅ Paciente localizado en BD local para generación de OTP: ${pacienteLocal.correoElectronico}`);
+            }
+            else {
+                throw errApi;
             }
         }
         if (!datosDemograficos || !datosDemograficos.correoElectronico) {
@@ -291,10 +264,6 @@ let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
                 paciente.correoElectronico = registroOtp.correo;
             paciente = await this.repositorioPaciente.save(paciente);
         }
-        const esCuentaAdmin = numeroDocumento === '123456789' ||
-            registroOtp.correo === 'cristian@codepyme.com' ||
-            registroOtp.correo === 'admin@codepyme.com';
-        const rolAsignado = esCuentaAdmin ? usuario_entity_1.RolUsuario.ADMINISTRADOR : usuario_entity_1.RolUsuario.PACIENTE;
         let usuario = await this.repositorioUsuario.findOne({
             where: { correoElectronico: registroOtp.correo },
         });
@@ -305,7 +274,7 @@ let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
                 apellidos: paciente.apellidos,
                 correoElectronico: registroOtp.correo,
                 contrasena: contrasenaGenerica,
-                rol: rolAsignado,
+                rol: usuario_entity_1.RolUsuario.PACIENTE,
                 activo: true,
             });
             usuario = await this.repositorioUsuario.save(usuario);
@@ -313,9 +282,6 @@ let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
         else {
             usuario.nombres = paciente.nombres;
             usuario.apellidos = paciente.apellidos;
-            if (esCuentaAdmin && usuario.rol !== usuario_entity_1.RolUsuario.ADMINISTRADOR) {
-                usuario.rol = usuario_entity_1.RolUsuario.ADMINISTRADOR;
-            }
             usuario = await this.repositorioUsuario.save(usuario);
         }
         const cargaJwt = {
@@ -330,12 +296,16 @@ let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
         };
         const token = await this.servicioJwt.signAsync(cargaJwt);
         const { contrasena: _contrasena, ...usuarioSinContrasena } = usuario;
+        const permisosUsuario = (0, permisos_utils_1.calcularPermisosConsolidados)(usuario);
         return {
             exito: true,
             mensaje: 'Autenticación exitosa',
             datos: {
                 token,
-                usuario: usuarioSinContrasena,
+                usuario: {
+                    ...usuarioSinContrasena,
+                    permisos: permisosUsuario,
+                },
                 paciente,
             },
         };
@@ -351,6 +321,7 @@ let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
         const nuevoUsuario = this.repositorioUsuario.create({
             ...registrarUsuarioDto,
             contrasena: contrasenaHasheada,
+            rol: usuario_entity_1.RolUsuario.PACIENTE,
         });
         const usuarioGuardado = await this.repositorioUsuario.save(nuevoUsuario);
         const { contrasena: _contrasena, ...usuarioSinContrasena } = usuarioGuardado;
@@ -363,6 +334,7 @@ let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
     async iniciarSesion(iniciarSesionDto) {
         const usuario = await this.repositorioUsuario.findOne({
             where: { correoElectronico: iniciarSesionDto.correoElectronico, activo: true },
+            relations: { rolEntidad: { permisos: true }, permisosDirectos: true },
         });
         if (!usuario) {
             throw new common_1.UnauthorizedException('Credenciales incorrectas');
@@ -371,6 +343,7 @@ let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
         if (!contrasenaValida) {
             throw new common_1.UnauthorizedException('Credenciales incorrectas');
         }
+        const permisosUsuario = (0, permisos_utils_1.calcularPermisosConsolidados)(usuario);
         const cargaJwt = {
             sub: usuario.id,
             correoElectronico: usuario.correoElectronico,
@@ -383,16 +356,25 @@ let AutenticacionService = AutenticacionService_1 = class AutenticacionService {
             mensaje: 'Sesión iniciada exitosamente',
             datos: {
                 token,
-                usuario: usuarioSinContrasena,
+                usuario: {
+                    ...usuarioSinContrasena,
+                    permisos: permisosUsuario,
+                },
             },
         };
     }
     async obtenerPerfilUsuario(usuario) {
         const { contrasena: _contrasena, ...perfilUsuario } = usuario;
+        const permisosUsuario = Array.isArray(usuario.permisos)
+            ? usuario.permisos
+            : (0, permisos_utils_1.calcularPermisosConsolidados)(usuario);
         return {
             exito: true,
             mensaje: 'Perfil del usuario obtenido exitosamente',
-            datos: perfilUsuario,
+            datos: {
+                ...perfilUsuario,
+                permisos: permisosUsuario,
+            },
         };
     }
     enmascararCorreo(correo) {

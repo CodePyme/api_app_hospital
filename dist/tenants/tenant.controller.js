@@ -93,6 +93,7 @@ __decorate([
 exports.TenantController = TenantController = __decorate([
     (0, common_1.Controller)('tenants'),
     (0, common_1.UseGuards)(jwt_autenticacion_guard_1.GuardJwtAutenticacion, super_admin_guard_1.SuperAdminGuard),
+    (0, common_1.UseInterceptors)(common_1.ClassSerializerInterceptor),
     __metadata("design:paramtypes", [tenant_service_1.TenantService])
 ], TenantController);
 //# sourceMappingURL=tenant.controller.js.map

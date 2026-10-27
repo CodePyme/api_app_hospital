@@ -11,6 +11,9 @@ import { DatabaseModule } from './database/database.module';
 import { TenantModule } from './tenants/tenant.module';
 import { TenantMiddleware } from './tenants/tenant.middleware';
 import { ResultadosModule } from './resultados/resultados.module';
+import { PermisosModule } from './permisos/permisos.module';
+import { RolesModule } from './roles/roles.module';
+import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
   imports: [
@@ -60,6 +63,9 @@ import { ResultadosModule } from './resultados/resultados.module';
     DatabaseModule,
     TenantModule,
     ResultadosModule,
+    PermisosModule,
+    RolesModule,
+    UsuariosModule,
   ],
   controllers: [],
   providers: [

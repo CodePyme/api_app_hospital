@@ -12,14 +12,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EstrategiaJwt = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const config_1 = require("@nestjs/config");
 const passport_jwt_1 = require("passport-jwt");
 const usuario_entity_1 = require("../entities/usuario.entity");
+const permisos_utils_1 = require("../../permisos/permisos.utils");
 let EstrategiaJwt = class EstrategiaJwt extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy) {
-    constructor() {
+    constructor(configService) {
+        const secreto = configService.get('JWT_SECRETO');
+        if (!secreto) {
+            throw new Error('JWT_SECRETO no está configurado. Defina esta variable de entorno antes de iniciar la aplicación.');
+        }
         super({
             jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
-            secretOrKey: process.env.JWT_SECRETO || 'secreto_por_defecto',
+            secretOrKey: secreto,
             passReqToCallback: true,
         });
     }
@@ -30,12 +36,15 @@ let EstrategiaJwt = class EstrategiaJwt extends (0, passport_1.PassportStrategy)
         const repositorioUsuario = req.tenantConexion.getRepository(usuario_entity_1.Usuario);
         const usuario = await repositorioUsuario.findOne({
             where: { id: cargaJwt.sub, activo: true },
+            relations: { rolEntidad: { permisos: true }, permisosDirectos: true },
         });
         if (!usuario) {
             throw new common_1.UnauthorizedException('Token inválido o usuario no encontrado');
         }
+        const permisos = (0, permisos_utils_1.calcularPermisosConsolidados)(usuario);
         return {
             ...usuario,
+            permisos,
             pacienteId: cargaJwt.pacienteId,
             tipoDocumento: cargaJwt.tipoDocumento,
             numeroDocumento: cargaJwt.numeroDocumento,
@@ -45,6 +54,6 @@ let EstrategiaJwt = class EstrategiaJwt extends (0, passport_1.PassportStrategy)
 exports.EstrategiaJwt = EstrategiaJwt;
 exports.EstrategiaJwt = EstrategiaJwt = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [config_1.ConfigService])
 ], EstrategiaJwt);
 //# sourceMappingURL=jwt.strategy.js.map

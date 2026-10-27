@@ -1,3 +1,5 @@
+import { Rol } from '../../roles/entities/rol.entity';
+import { Permiso } from '../../permisos/entities/permiso.entity';
 export declare enum RolUsuario {
     ADMINISTRADOR = "administrador",
     MEDICO = "medico",
@@ -11,6 +13,9 @@ export declare class Usuario {
     correoElectronico: string;
     contrasena: string;
     rol: RolUsuario;
+    rolId?: string | null;
+    rolEntidad?: Rol | null;
+    permisosDirectos?: Permiso[];
     activo: boolean;
     creadoEn: Date;
     actualizadoEn: Date;

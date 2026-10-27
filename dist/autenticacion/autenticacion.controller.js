@@ -14,6 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AutenticacionController = void 0;
 const common_1 = require("@nestjs/common");
+const throttler_1 = require("@nestjs/throttler");
 const autenticacion_service_1 = require("./autenticacion.service");
 const iniciar_sesion_dto_1 = require("./dto/iniciar-sesion.dto");
 const registrar_usuario_dto_1 = require("./dto/registrar-usuario.dto");
@@ -45,6 +46,7 @@ let AutenticacionController = class AutenticacionController {
 };
 exports.AutenticacionController = AutenticacionController;
 __decorate([
+    (0, throttler_1.Throttle)({ default: { limit: 5, ttl: 60000 } }),
     (0, common_1.Post)('solicitar-otp'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -52,6 +54,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AutenticacionController.prototype, "solicitarOtp", null);
 __decorate([
+    (0, throttler_1.Throttle)({ default: { limit: 8, ttl: 60000 } }),
     (0, common_1.Post)('verificar-otp'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -59,6 +62,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AutenticacionController.prototype, "verificarOtp", null);
 __decorate([
+    (0, throttler_1.Throttle)({ default: { limit: 5, ttl: 60000 } }),
     (0, common_1.Post)('registrar'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -66,6 +70,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AutenticacionController.prototype, "registrarUsuario", null);
 __decorate([
+    (0, throttler_1.Throttle)({ default: { limit: 5, ttl: 60000 } }),
     (0, common_1.Post)('iniciar-sesion'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),

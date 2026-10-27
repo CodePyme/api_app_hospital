@@ -10,22 +10,25 @@ const helmet_1 = __importDefault(require("helmet"));
 const logger = new common_1.Logger('Bootstrap');
 function obtenerOrigenesPermitidos() {
     const origenesEnv = process.env.CORS_ORIGINS;
-    if (!origenesEnv)
-        return true;
-    return origenesEnv.split(',').map((o) => o.trim()).filter(Boolean);
+    if (origenesEnv) {
+        return origenesEnv.split(',').map((o) => o.trim()).filter(Boolean);
+    }
+    const esProduccion = process.env.ENTORNO === 'production' || process.env.ENTORNO === 'prd';
+    if (esProduccion) {
+        logger.warn('⚠️ CORS_ORIGINS no está configurada en producción: se bloquean todos los orígenes cross-origin.');
+        return [];
+    }
+    return true;
 }
 async function iniciarAplicacion() {
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('🔍 DIAGNÓSTICO DE CONFIGURACIÓN');
-    console.log(`   DB_HOST     : ${process.env.DB_HOST ?? '(no definido)'}`);
-    console.log(`   DB_PORT     : ${process.env.DB_PORT ?? '(no definido)'}`);
-    console.log(`   DB_DATABASE : ${process.env.DB_DATABASE ?? '(no definido)'}`);
-    console.log(`   DB_USERNAME : ${process.env.DB_USERNAME ?? '(no definido)'}`);
-    console.log(`   DB_PASSWORD : ${process.env.DB_PASSWORD ? '***' : '(no definido)'}`);
-    console.log(`   ENTORNO     : ${process.env.ENTORNO ?? '(no definido)'}`);
-    console.log(`   CORS_ORIGINS: ${process.env.CORS_ORIGINS ?? '(no definido - permite todo)'}`);
-    console.log(`   CWD         : ${process.cwd()}`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    logger.log('🔍 Diagnóstico de configuración (solo presencia, no valores):');
+    logger.log(`   DB_HOST     : ${process.env.DB_HOST ? 'configurado' : 'no definido'}`);
+    logger.log(`   DB_PORT     : ${process.env.DB_PORT ? 'configurado' : 'no definido'}`);
+    logger.log(`   DB_DATABASE : ${process.env.DB_DATABASE ? 'configurado' : 'no definido'}`);
+    logger.log(`   DB_USERNAME : ${process.env.DB_USERNAME ? 'configurado' : 'no definido'}`);
+    logger.log(`   DB_PASSWORD : ${process.env.DB_PASSWORD ? 'configurado' : 'no definido'}`);
+    logger.log(`   ENTORNO     : ${process.env.ENTORNO ?? '(no definido)'}`);
+    logger.log(`   CORS_ORIGINS: ${process.env.CORS_ORIGINS ? 'configurado' : 'no definido'}`);
     const aplicacion = await core_1.NestFactory.create(app_module_1.AppModule);
     aplicacion.use((0, helmet_1.default)());
     const origenesPermitidos = obtenerOrigenesPermitidos();

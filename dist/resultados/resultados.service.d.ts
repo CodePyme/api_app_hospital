@@ -30,11 +30,12 @@ export declare class ResultadosService {
         totalRegistros: any;
         status: any;
     }>;
-    obtenerDetalleOrden(internalNumber: string, clientCode?: string): Promise<{
+    obtenerDetalleOrden(internalNumber: string, clientCode?: string, usuario?: any): Promise<{
         exito: boolean;
         mensaje: string;
         datos: any;
         status: any;
     }>;
     proxyPdf(pdfUrlKey: string, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
+    private ordenPerteneceAlPaciente;
 }

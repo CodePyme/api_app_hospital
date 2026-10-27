@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config';
 import { Strategy } from 'passport-jwt';
 import { Request } from 'express';
 interface CargaJwt {
@@ -10,11 +11,11 @@ interface CargaJwt {
     tipoDocumento?: string;
     numeroDocumento?: string;
 }
-declare const EstrategiaJwt_base: new (...args: [opt: import("passport-jwt").StrategyOptionsWithRequest] | [opt: import("passport-jwt").StrategyOptionsWithoutRequest]) => Strategy & {
+declare const EstrategiaJwt_base: new (...args: [opt: import("passport-jwt").StrategyOptionsWithoutRequest] | [opt: import("passport-jwt").StrategyOptionsWithRequest]) => Strategy & {
     validate(...args: any[]): unknown;
 };
 export declare class EstrategiaJwt extends EstrategiaJwt_base {
-    constructor();
+    constructor(configService: ConfigService);
     validate(req: Request, cargaJwt: CargaJwt): Promise<any>;
 }
 export {};

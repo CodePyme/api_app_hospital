@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Request } from 'express';
 import { Usuario } from '../entities/usuario.entity';
+import { calcularPermisosConsolidados } from '../../permisos/permisos.utils';
 
 interface CargaJwt {
   sub: string;
@@ -42,14 +43,18 @@ export class EstrategiaJwt extends PassportStrategy(Strategy) {
     const repositorioUsuario = req.tenantConexion.getRepository(Usuario);
     const usuario = await repositorioUsuario.findOne({
       where: { id: cargaJwt.sub, activo: true },
+      relations: { rolEntidad: { permisos: true }, permisosDirectos: true },
     });
 
     if (!usuario) {
       throw new UnauthorizedException('Token inválido o usuario no encontrado');
     }
 
+    const permisos = calcularPermisosConsolidados(usuario);
+
     return {
       ...usuario,
+      permisos,
       pacienteId: cargaJwt.pacienteId,
       tipoDocumento: cargaJwt.tipoDocumento,
       numeroDocumento: cargaJwt.numeroDocumento,

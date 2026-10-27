@@ -23,6 +23,7 @@ import { VerificarOtpDto } from './dto/verificar-otp.dto';
 import { RespuestaApi } from '../common/interfaces/respuesta-api.interface';
 import { CorreoService } from './services/correo.service';
 import { IntegracionHospitalService } from './services/integracion-hospital.service';
+import { calcularPermisosConsolidados } from '../permisos/permisos.utils';
 
 @Injectable({ scope: Scope.REQUEST })
 export class AutenticacionService {
@@ -345,13 +346,17 @@ export class AutenticacionService {
 
     const token = await this.servicioJwt.signAsync(cargaJwt);
     const { contrasena: _contrasena, ...usuarioSinContrasena } = usuario;
+    const permisosUsuario = calcularPermisosConsolidados(usuario);
 
     return {
       exito: true,
       mensaje: 'Autenticación exitosa',
       datos: {
         token,
-        usuario: usuarioSinContrasena as Omit<Usuario, 'contrasena'>,
+        usuario: {
+          ...usuarioSinContrasena,
+          permisos: permisosUsuario,
+        } as any,
         paciente,
       },
     };
@@ -393,9 +398,10 @@ export class AutenticacionService {
 
   async iniciarSesion(
     iniciarSesionDto: IniciarSesionDto,
-  ): Promise<RespuestaApi<{ token: string; usuario: Omit<Usuario, 'contrasena'> }>> {
+  ): Promise<RespuestaApi<{ token: string; usuario: any }>> {
     const usuario = await this.repositorioUsuario.findOne({
       where: { correoElectronico: iniciarSesionDto.correoElectronico, activo: true },
+      relations: { rolEntidad: { permisos: true }, permisosDirectos: true },
     });
 
     if (!usuario) {
@@ -411,6 +417,8 @@ export class AutenticacionService {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
+    const permisosUsuario = calcularPermisosConsolidados(usuario);
+
     const cargaJwt = {
       sub: usuario.id,
       correoElectronico: usuario.correoElectronico,
@@ -425,18 +433,27 @@ export class AutenticacionService {
       mensaje: 'Sesión iniciada exitosamente',
       datos: {
         token,
-        usuario: usuarioSinContrasena as Omit<Usuario, 'contrasena'>,
+        usuario: {
+          ...usuarioSinContrasena,
+          permisos: permisosUsuario,
+        },
       },
     };
   }
 
-  async obtenerPerfilUsuario(usuario: Usuario): Promise<RespuestaApi<Omit<Usuario, 'contrasena'>>> {
+  async obtenerPerfilUsuario(usuario: Usuario & { permisos?: string[] }): Promise<RespuestaApi<any>> {
     const { contrasena: _contrasena, ...perfilUsuario } = usuario;
+    const permisosUsuario = Array.isArray(usuario.permisos)
+      ? usuario.permisos
+      : calcularPermisosConsolidados(usuario);
 
     return {
       exito: true,
       mensaje: 'Perfil del usuario obtenido exitosamente',
-      datos: perfilUsuario as Omit<Usuario, 'contrasena'>,
+      datos: {
+        ...perfilUsuario,
+        permisos: permisosUsuario,
+      },
     };
   }
 

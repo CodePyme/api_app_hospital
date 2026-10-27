@@ -45,6 +45,7 @@ var SeederUsuarioAdmin_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SeederUsuarioAdmin = void 0;
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
 const bcrypt = __importStar(require("bcrypt"));
 const usuario_entity_1 = require("../../autenticacion/entities/usuario.entity");
 const tenant_service_1 = require("../../tenants/tenant.service");
@@ -52,18 +53,24 @@ const tenant_connection_manager_1 = require("../../tenants/tenant-connection.man
 let SeederUsuarioAdmin = SeederUsuarioAdmin_1 = class SeederUsuarioAdmin {
     tenantService;
     connectionManager;
+    configService;
     logger = new common_1.Logger(SeederUsuarioAdmin_1.name);
     CORREO_ADMIN = 'admin@codepyme.com';
-    CONTRASENA_ADMIN = 'admin123';
     RONDAS_HASH = 10;
-    constructor(tenantService, connectionManager) {
+    constructor(tenantService, connectionManager, configService) {
         this.tenantService = tenantService;
         this.connectionManager = connectionManager;
+        this.configService = configService;
     }
     async onApplicationBootstrap() {
         await this.sembrarUsuarioAdmin();
     }
     async sembrarUsuarioAdmin() {
+        const contrasenaAdmin = this.configService.get('ADMIN_SEED_PASSWORD');
+        if (!contrasenaAdmin) {
+            this.logger.warn('⚠️ ADMIN_SEED_PASSWORD no está configurada: se omite la creación automática del usuario administrador.');
+            return;
+        }
         try {
             const tenantsPaginados = await this.tenantService.obtenerTodosTenants(1, 1000);
             const tenants = tenantsPaginados.datos;
@@ -80,7 +87,7 @@ let SeederUsuarioAdmin = SeederUsuarioAdmin_1 = class SeederUsuarioAdmin {
                         this.logger.log(`✔ Usuario admin ya existe en tenant: ${tenant.nombre}`);
                         continue;
                     }
-                    const contrasenaHasheada = await bcrypt.hash(this.CONTRASENA_ADMIN, this.RONDAS_HASH);
+                    const contrasenaHasheada = await bcrypt.hash(contrasenaAdmin, this.RONDAS_HASH);
                     const nuevoAdmin = repositorioUsuario.create({
                         nombres: 'Administrador',
                         apellidos: 'Sistema',
@@ -106,6 +113,7 @@ exports.SeederUsuarioAdmin = SeederUsuarioAdmin;
 exports.SeederUsuarioAdmin = SeederUsuarioAdmin = SeederUsuarioAdmin_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [tenant_service_1.TenantService,
-        tenant_connection_manager_1.TenantConnectionManager])
+        tenant_connection_manager_1.TenantConnectionManager,
+        config_1.ConfigService])
 ], SeederUsuarioAdmin);
 //# sourceMappingURL=seeder-usuario-admin.js.map

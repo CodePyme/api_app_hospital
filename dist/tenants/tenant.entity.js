@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Tenant = void 0;
 const typeorm_1 = require("typeorm");
+const class_transformer_1 = require("class-transformer");
 let Tenant = class Tenant {
     id;
     nombre;
@@ -55,10 +56,12 @@ __decorate([
     __metadata("design:type", Number)
 ], Tenant.prototype, "dbPort", void 0);
 __decorate([
+    (0, class_transformer_1.Exclude)(),
     (0, typeorm_1.Column)({ name: 'db_username', type: 'varchar', length: 100 }),
     __metadata("design:type", String)
 ], Tenant.prototype, "dbUsername", void 0);
 __decorate([
+    (0, class_transformer_1.Exclude)(),
     (0, typeorm_1.Column)({ name: 'db_password', type: 'varchar', length: 255 }),
     __metadata("design:type", String)
 ], Tenant.prototype, "dbPassword", void 0);

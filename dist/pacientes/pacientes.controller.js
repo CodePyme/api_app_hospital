@@ -18,6 +18,10 @@ const pacientes_service_1 = require("./pacientes.service");
 const crear_paciente_dto_1 = require("./dto/crear-paciente.dto");
 const actualizar_paciente_dto_1 = require("./dto/actualizar-paciente.dto");
 const jwt_autenticacion_guard_1 = require("../common/guards/jwt-autenticacion.guard");
+const roles_guard_1 = require("../common/guards/roles.guard");
+const roles_decorator_1 = require("../common/decorators/roles.decorator");
+const usuario_entity_1 = require("../autenticacion/entities/usuario.entity");
+const PERSONAL_CLINICO = [usuario_entity_1.RolUsuario.ADMINISTRADOR, usuario_entity_1.RolUsuario.MEDICO, usuario_entity_1.RolUsuario.RECEPCIONISTA];
 let PacientesController = class PacientesController {
     pacientesService;
     constructor(pacientesService) {
@@ -52,6 +56,7 @@ let PacientesController = class PacientesController {
 };
 exports.PacientesController = PacientesController;
 __decorate([
+    (0, roles_decorator_1.Roles)(...PERSONAL_CLINICO),
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -59,6 +64,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PacientesController.prototype, "crearPaciente", null);
 __decorate([
+    (0, roles_decorator_1.Roles)(...PERSONAL_CLINICO),
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('pagina')),
     __param(1, (0, common_1.Query)('limite')),
@@ -67,6 +73,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PacientesController.prototype, "obtenerTodosPacientes", null);
 __decorate([
+    (0, roles_decorator_1.Roles)(...PERSONAL_CLINICO),
     (0, common_1.Get)('buscar'),
     __param(0, (0, common_1.Query)('termino')),
     __metadata("design:type", Function),
@@ -81,6 +88,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PacientesController.prototype, "obtenerMiPerfil", null);
 __decorate([
+    (0, roles_decorator_1.Roles)(...PERSONAL_CLINICO),
     (0, common_1.Get)('episodio/:episodio'),
     __param(0, (0, common_1.Param)('episodio')),
     __metadata("design:type", Function),
@@ -88,6 +96,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PacientesController.prototype, "consultarPorEpisodio", null);
 __decorate([
+    (0, roles_decorator_1.Roles)(...PERSONAL_CLINICO),
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -95,6 +104,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PacientesController.prototype, "obtenerPacientePorId", null);
 __decorate([
+    (0, roles_decorator_1.Roles)(...PERSONAL_CLINICO),
     (0, common_1.Patch)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
@@ -103,6 +113,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PacientesController.prototype, "actualizarPaciente", null);
 __decorate([
+    (0, roles_decorator_1.Roles)(usuario_entity_1.RolUsuario.ADMINISTRADOR),
     (0, common_1.Delete)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -110,7 +121,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PacientesController.prototype, "eliminarPaciente", null);
 exports.PacientesController = PacientesController = __decorate([
-    (0, common_1.UseGuards)(jwt_autenticacion_guard_1.GuardJwtAutenticacion),
+    (0, common_1.UseGuards)(jwt_autenticacion_guard_1.GuardJwtAutenticacion, roles_guard_1.RolesGuard),
     (0, common_1.Controller)('pacientes'),
     __metadata("design:paramtypes", [pacientes_service_1.PacientesService])
 ], PacientesController);

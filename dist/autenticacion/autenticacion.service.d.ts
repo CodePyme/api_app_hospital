@@ -38,9 +38,11 @@ export declare class AutenticacionService {
     registrarUsuario(registrarUsuarioDto: RegistrarUsuarioDto): Promise<RespuestaApi<Omit<Usuario, 'contrasena'>>>;
     iniciarSesion(iniciarSesionDto: IniciarSesionDto): Promise<RespuestaApi<{
         token: string;
-        usuario: Omit<Usuario, 'contrasena'>;
+        usuario: any;
     }>>;
-    obtenerPerfilUsuario(usuario: Usuario): Promise<RespuestaApi<Omit<Usuario, 'contrasena'>>>;
+    obtenerPerfilUsuario(usuario: Usuario & {
+        permisos?: string[];
+    }): Promise<RespuestaApi<any>>;
     private enmascararCorreo;
     private enmascararTelefono;
 }

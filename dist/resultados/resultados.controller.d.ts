@@ -10,7 +10,7 @@ export declare class ResultadosController {
         totalRegistros: any;
         status: any;
     }>;
-    obtenerDetalleOrden(internalNumber: string, clientCode?: string): Promise<{
+    obtenerDetalleOrden(req: Request, internalNumber: string, clientCode?: string): Promise<{
         exito: boolean;
         mensaje: string;
         datos: any;

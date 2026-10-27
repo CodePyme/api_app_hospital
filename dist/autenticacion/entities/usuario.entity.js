@@ -11,6 +11,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Usuario = exports.RolUsuario = void 0;
 const typeorm_1 = require("typeorm");
+const rol_entity_1 = require("../../roles/entities/rol.entity");
+const permiso_entity_1 = require("../../permisos/entities/permiso.entity");
 var RolUsuario;
 (function (RolUsuario) {
     RolUsuario["ADMINISTRADOR"] = "administrador";
@@ -25,6 +27,9 @@ let Usuario = class Usuario {
     correoElectronico;
     contrasena;
     rol;
+    rolId;
+    rolEntidad;
+    permisosDirectos;
     activo;
     creadoEn;
     actualizadoEn;
@@ -51,9 +56,27 @@ __decorate([
     __metadata("design:type", String)
 ], Usuario.prototype, "contrasena", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'rol', type: 'enum', enum: RolUsuario, default: RolUsuario.RECEPCIONISTA }),
+    (0, typeorm_1.Column)({ name: 'rol', type: 'enum', enum: RolUsuario, default: RolUsuario.PACIENTE }),
     __metadata("design:type", String)
 ], Usuario.prototype, "rol", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'rol_id', type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
+], Usuario.prototype, "rolId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => rol_entity_1.Rol, (r) => r.usuarios, { nullable: true, onDelete: 'SET NULL' }),
+    (0, typeorm_1.JoinColumn)({ name: 'rol_id' }),
+    __metadata("design:type", Object)
+], Usuario.prototype, "rolEntidad", void 0);
+__decorate([
+    (0, typeorm_1.ManyToMany)(() => permiso_entity_1.Permiso, (p) => p.usuarios, { cascade: false }),
+    (0, typeorm_1.JoinTable)({
+        name: 'usuarios_permisos',
+        joinColumn: { name: 'usuario_id', referencedColumnName: 'id' },
+        inverseJoinColumn: { name: 'permiso_id', referencedColumnName: 'id' },
+    }),
+    __metadata("design:type", Array)
+], Usuario.prototype, "permisosDirectos", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'activo', type: 'boolean', default: true }),
     __metadata("design:type", Boolean)

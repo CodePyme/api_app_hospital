@@ -21,7 +21,7 @@ export declare class AutenticacionController {
     registrarUsuario(registrarUsuarioDto: RegistrarUsuarioDto): Promise<import("../common/interfaces/respuesta-api.interface").RespuestaApi<Omit<Usuario, "contrasena">>>;
     iniciarSesion(iniciarSesionDto: IniciarSesionDto): Promise<import("../common/interfaces/respuesta-api.interface").RespuestaApi<{
         token: string;
-        usuario: Omit<Usuario, "contrasena">;
+        usuario: any;
     }>>;
-    obtenerPerfil(usuario: Usuario): Promise<import("../common/interfaces/respuesta-api.interface").RespuestaApi<Omit<Usuario, "contrasena">>>;
+    obtenerPerfil(usuario: Usuario): Promise<import("../common/interfaces/respuesta-api.interface").RespuestaApi<any>>;
 }

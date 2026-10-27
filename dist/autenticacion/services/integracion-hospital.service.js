@@ -216,8 +216,8 @@ let IntegracionHospitalService = IntegracionHospitalService_1 = class Integracio
         });
         const urlCompleta = `${baseUrl}?${params.toString()}`;
         const timeoutMs = this.configService.get('DEMOGRAFICOS_TIMEOUT_MS', 15000);
-        const authUser = this.configService.get('DEMOGRAFICOS_AUTH_USER', 'po_divergent');
-        const authPass = this.configService.get('DEMOGRAFICOS_AUTH_PASS', 'QgXz18YcMqg4iu');
+        const authUser = this.configService.get('DEMOGRAFICOS_AUTH_USER');
+        const authPass = this.configService.get('DEMOGRAFICOS_AUTH_PASS');
         console.log('\n======================================================');
         console.log('🚀 [CONSULTA SAP PO POR EPISODIO]');
         console.log('URL:', urlCompleta);

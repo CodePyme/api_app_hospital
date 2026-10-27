@@ -19,6 +19,10 @@ const crear_cita_dto_1 = require("./dto/crear-cita.dto");
 const actualizar_cita_dto_1 = require("./dto/actualizar-cita.dto");
 const cancelar_cita_dto_1 = require("./dto/cancelar-cita.dto");
 const jwt_autenticacion_guard_1 = require("../common/guards/jwt-autenticacion.guard");
+const roles_guard_1 = require("../common/guards/roles.guard");
+const roles_decorator_1 = require("../common/decorators/roles.decorator");
+const usuario_entity_1 = require("../autenticacion/entities/usuario.entity");
+const PERSONAL_CLINICO = [usuario_entity_1.RolUsuario.ADMINISTRADOR, usuario_entity_1.RolUsuario.MEDICO, usuario_entity_1.RolUsuario.RECEPCIONISTA];
 let CitasController = class CitasController {
     citasService;
     constructor(citasService) {
@@ -73,6 +77,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CitasController.prototype, "cancelarCitaPaciente", null);
 __decorate([
+    (0, roles_decorator_1.Roles)(...PERSONAL_CLINICO),
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -89,6 +94,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CitasController.prototype, "obtenerTodasLasCitas", null);
 __decorate([
+    (0, roles_decorator_1.Roles)(...PERSONAL_CLINICO),
     (0, common_1.Get)('paciente/:pacienteId'),
     __param(0, (0, common_1.Param)('pacienteId')),
     __metadata("design:type", Function),
@@ -96,6 +102,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CitasController.prototype, "obtenerCitasPorPaciente", null);
 __decorate([
+    (0, roles_decorator_1.Roles)(...PERSONAL_CLINICO),
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -103,6 +110,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CitasController.prototype, "obtenerCitaPorId", null);
 __decorate([
+    (0, roles_decorator_1.Roles)(...PERSONAL_CLINICO),
     (0, common_1.Patch)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
@@ -111,6 +119,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CitasController.prototype, "actualizarCita", null);
 __decorate([
+    (0, roles_decorator_1.Roles)(...PERSONAL_CLINICO),
     (0, common_1.Patch)(':id/cancelar'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -118,6 +127,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CitasController.prototype, "cancelarCita", null);
 __decorate([
+    (0, roles_decorator_1.Roles)(usuario_entity_1.RolUsuario.ADMINISTRADOR),
     (0, common_1.Delete)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -125,7 +135,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CitasController.prototype, "eliminarCita", null);
 exports.CitasController = CitasController = __decorate([
-    (0, common_1.UseGuards)(jwt_autenticacion_guard_1.GuardJwtAutenticacion),
+    (0, common_1.UseGuards)(jwt_autenticacion_guard_1.GuardJwtAutenticacion, roles_guard_1.RolesGuard),
     (0, common_1.Controller)('citas'),
     __metadata("design:paramtypes", [citas_service_1.CitasService])
 ], CitasController);

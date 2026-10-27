@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SeederMaestro } from './seeders/seeder-maestro';
 import { SeederUsuarioAdmin } from './seeders/seeder-usuario-admin';
+import { SeederRolesPermisos } from './seeders/seeder-roles-permisos';
 import { Tenant } from '../tenants/tenant.entity';
 import { TenantModule } from '../tenants/tenant.module';
 
@@ -16,6 +17,7 @@ import { TenantModule } from '../tenants/tenant.module';
     // SeederUsuarioAdmin lo encuentre al iterar los tenants activos.
     SeederMaestro,
     SeederUsuarioAdmin,
+    SeederRolesPermisos,
   ],
 })
 export class DatabaseModule {}
