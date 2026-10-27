@@ -11,6 +11,8 @@ export declare class UsuariosService {
     private get repositorioUsuario();
     private get repositorioRol();
     private get repositorioPermiso();
+    private get usuarioAutenticado();
+    private get esSuperAdmin();
     obtenerUsuarios(incluirPacientes?: boolean): Promise<RespuestaApi<any[]>>;
     obtenerPorId(id: string): Promise<RespuestaApi<any>>;
     crear(crearUsuarioDto: CrearUsuarioDto): Promise<RespuestaApi<any>>;

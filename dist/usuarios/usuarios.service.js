@@ -70,10 +70,19 @@ let UsuariosService = class UsuariosService {
     get repositorioPermiso() {
         return this.request.tenantConexion.getRepository(permiso_entity_1.Permiso);
     }
+    get usuarioAutenticado() {
+        return this.request?.user;
+    }
+    get esSuperAdmin() {
+        return this.usuarioAutenticado?.correoElectronico === this.CORREO_SUPER_ADMIN;
+    }
     async obtenerUsuarios(incluirPacientes = false) {
         const whereCondition = {};
         if (!incluirPacientes) {
             whereCondition.rol = (0, typeorm_1.Not)(usuario_entity_1.RolUsuario.PACIENTE);
+        }
+        if (!this.esSuperAdmin) {
+            whereCondition.correoElectronico = (0, typeorm_1.Not)(this.CORREO_SUPER_ADMIN);
         }
         const usuarios = await this.repositorioUsuario.find({
             where: whereCondition,
@@ -98,7 +107,7 @@ let UsuariosService = class UsuariosService {
             where: { id },
             relations: { rolEntidad: { permisos: true }, permisosDirectos: true },
         });
-        if (!usuario) {
+        if (!usuario || (!this.esSuperAdmin && usuario.correoElectronico === this.CORREO_SUPER_ADMIN)) {
             throw new common_1.NotFoundException(`Usuario con ID "${id}" no encontrado`);
         }
         const { contrasena: _, ...resto } = usuario;
@@ -166,7 +175,7 @@ let UsuariosService = class UsuariosService {
             where: { id },
             relations: { rolEntidad: true, permisosDirectos: true },
         });
-        if (!usuario) {
+        if (!usuario || (!this.esSuperAdmin && usuario.correoElectronico === this.CORREO_SUPER_ADMIN)) {
             throw new common_1.NotFoundException(`Usuario con ID "${id}" no encontrado`);
         }
         if (actualizarUsuarioDto.correoElectronico) {
@@ -176,7 +185,7 @@ let UsuariosService = class UsuariosService {
                     throw new common_1.BadRequestException('No se puede modificar el correo del super administrador');
                 }
                 const existeOtro = await this.repositorioUsuario.findOne({
-                    where: { correoElectronico: correoLimpio },
+                    where: { correoElectronico: correoLimpio, id: (0, typeorm_1.Not)(id) },
                 });
                 if (existeOtro) {
                     throw new common_1.ConflictException(`Ya existe otro usuario con el correo "${correoLimpio}"`);
@@ -238,7 +247,7 @@ let UsuariosService = class UsuariosService {
     }
     async cambiarContrasena(id, dto) {
         const usuario = await this.repositorioUsuario.findOne({ where: { id } });
-        if (!usuario) {
+        if (!usuario || (!this.esSuperAdmin && usuario.correoElectronico === this.CORREO_SUPER_ADMIN)) {
             throw new common_1.NotFoundException(`Usuario con ID "${id}" no encontrado`);
         }
         usuario.contrasena = await bcrypt.hash(dto.nuevaContrasena.trim(), this.RONDAS_HASH);
@@ -251,7 +260,7 @@ let UsuariosService = class UsuariosService {
     }
     async eliminar(id) {
         const usuario = await this.repositorioUsuario.findOne({ where: { id } });
-        if (!usuario) {
+        if (!usuario || (!this.esSuperAdmin && usuario.correoElectronico === this.CORREO_SUPER_ADMIN)) {
             throw new common_1.NotFoundException(`Usuario con ID "${id}" no encontrado`);
         }
         if (usuario.correoElectronico === this.CORREO_SUPER_ADMIN) {

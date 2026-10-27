@@ -38,6 +38,14 @@ export class UsuariosService {
     return this.request.tenantConexion!.getRepository(Permiso);
   }
 
+  private get usuarioAutenticado() {
+    return (this.request as any)?.user;
+  }
+
+  private get esSuperAdmin(): boolean {
+    return this.usuarioAutenticado?.correoElectronico === this.CORREO_SUPER_ADMIN;
+  }
+
   /**
    * Obtiene la lista de usuarios de plataforma (excluyendo pacientes de portal por defecto)
    */
@@ -45,6 +53,9 @@ export class UsuariosService {
     const whereCondition: any = {};
     if (!incluirPacientes) {
       whereCondition.rol = Not(RolUsuario.PACIENTE);
+    }
+    if (!this.esSuperAdmin) {
+      whereCondition.correoElectronico = Not(this.CORREO_SUPER_ADMIN);
     }
 
     const usuarios = await this.repositorioUsuario.find({
@@ -74,7 +85,7 @@ export class UsuariosService {
       relations: { rolEntidad: { permisos: true }, permisosDirectos: true },
     });
 
-    if (!usuario) {
+    if (!usuario || (!this.esSuperAdmin && usuario.correoElectronico === this.CORREO_SUPER_ADMIN)) {
       throw new NotFoundException(`Usuario con ID "${id}" no encontrado`);
     }
 
@@ -157,7 +168,7 @@ export class UsuariosService {
       relations: { rolEntidad: true, permisosDirectos: true },
     });
 
-    if (!usuario) {
+    if (!usuario || (!this.esSuperAdmin && usuario.correoElectronico === this.CORREO_SUPER_ADMIN)) {
       throw new NotFoundException(`Usuario con ID "${id}" no encontrado`);
     }
 
@@ -169,7 +180,7 @@ export class UsuariosService {
         }
 
         const existeOtro = await this.repositorioUsuario.findOne({
-          where: { correoElectronico: correoLimpio },
+          where: { correoElectronico: correoLimpio, id: Not(id) },
         });
 
         if (existeOtro) {
@@ -235,7 +246,7 @@ export class UsuariosService {
 
   async cambiarContrasena(id: string, dto: CambiarContrasenaDto): Promise<RespuestaApi<null>> {
     const usuario = await this.repositorioUsuario.findOne({ where: { id } });
-    if (!usuario) {
+    if (!usuario || (!this.esSuperAdmin && usuario.correoElectronico === this.CORREO_SUPER_ADMIN)) {
       throw new NotFoundException(`Usuario con ID "${id}" no encontrado`);
     }
 
@@ -251,7 +262,7 @@ export class UsuariosService {
 
   async eliminar(id: string): Promise<RespuestaApi<null>> {
     const usuario = await this.repositorioUsuario.findOne({ where: { id } });
-    if (!usuario) {
+    if (!usuario || (!this.esSuperAdmin && usuario.correoElectronico === this.CORREO_SUPER_ADMIN)) {
       throw new NotFoundException(`Usuario con ID "${id}" no encontrado`);
     }
 
