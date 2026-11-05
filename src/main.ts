@@ -31,6 +31,32 @@ function obtenerOrigenesPermitidos(): string[] | boolean {
   return true; // dev: permitir todos
 }
 
+/**
+ * Agrega las cabeceras de seguridad que Helmet no cubre:
+ * - Cache-Control: no-store, para que ningún navegador ni caché intermedia
+ *   guarde respuestas con información clínica del paciente.
+ * - Permissions-Policy: la API no usa APIs del navegador, se deshabilitan todas.
+ *
+ * @param _peticion Petición HTTP entrante.
+ * @param respuesta Respuesta HTTP donde se agregan las cabeceras.
+ * @param siguiente Función para continuar con el siguiente middleware.
+ * @returns void
+ * @author calvarez
+ */
+function aplicarCabecerasSeguridadAdicionales(
+  _peticion: Request,
+  respuesta: Response,
+  siguiente: NextFunction,
+): void {
+  respuesta.setHeader('Cache-Control', 'no-store, max-age=0');
+  respuesta.setHeader('Pragma', 'no-cache');
+  respuesta.setHeader(
+    'Permissions-Policy',
+    'geolocation=(), camera=(), microphone=(), payment=(), usb=()',
+  );
+  siguiente();
+}
+
 async function iniciarAplicacion() {
   // ─── DIAGNÓSTICO DE VARIABLES DE ENTORNO ─────────────────────────────────
   // Solo se informa si cada variable está o no configurada; nunca sus valores
@@ -48,8 +74,11 @@ async function iniciarAplicacion() {
 
   const aplicacion = await NestFactory.create(AppModule);
 
-  // Habilitar Helmet (Seguridad HTTP)
-  aplicacion.use(helmet());
+  // Habilitar Helmet (Seguridad HTTP): CSP, X-Frame-Options, HSTS, nosniff,
+  // Referrer-Policy, COOP y CORP. COEP se activa explícitamente (Helmet 8 lo
+  // deja apagado por defecto).
+  aplicacion.use(helmet({ crossOriginEmbedderPolicy: true }));
+  aplicacion.use(aplicarCabecerasSeguridadAdicionales);
 
   const origenesPermitidos = obtenerOrigenesPermitidos();
 
